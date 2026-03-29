@@ -1,3 +1,4 @@
+alert("Aplikace startuje!");
 // --- DATA ---
 let recipes = JSON.parse(localStorage.getItem('g_recipes')) || [];
 let logs = JSON.parse(localStorage.getItem('g_logs')) || []; // Historie prodejů
