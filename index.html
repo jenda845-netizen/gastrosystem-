@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gastro ERP Ultimate</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <div id="user-info">👤 <span id="current-user">Admin</span></div>
+            <h1 onclick="showTables()">GASTRO ERP</h1>
+            <div class="header-btns">
+                <button id="btn-connect-prn" onclick="connectPrinter()">🔌 TISKÁRNA</button>
+                <button onclick="showAdmin()">📊 ADMIN</button>
+            </div>
+        </header>
+
+        <div id="screen-tables" class="screen">
+            <div id="tables-grid"></div>
+        </div>
+
+        <div id="screen-order" class="screen hidden">
+            <div class="order-container">
+                <div class="menu-side">
+                    <div class="categories" id="menu-cats"></div>
+                    <div id="menu-items"></div>
+                </div>
+                <div class="bill-side">
+                    <div class="bill-header">
+                        <h2 id="active-table-title">Stůl</h2>
+                        <button onclick="showTables()">❌</button>
+                    </div>
+                    <div id="bill-list"></div>
+                    <div class="bill-footer">
+                        <div class="total-row">CELKEM: <span id="bill-total">0</span> Kč</div>
+                        <div class="pay-actions">
+                            <button class="btn-kitchen" onclick="printOrder()">BON 🍳</button>
+                            <button class="btn-pay" onclick="payWithPrint()">PLATBA 🧾</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-admin" class="screen hidden">
+            <div class="admin-tabs">
+                <button onclick="renderDashboard()">📈 DASHBOARD</button>
+                <button onclick="renderInventoryEditor()">📦 SKLAD</button>
+                <button onclick="renderRecipeEditor()">📜 RECEPTY</button>
+            </div>
+            <div id="admin-content" class="admin-panel">
+                </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
