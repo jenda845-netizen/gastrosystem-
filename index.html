@@ -3,55 +3,186 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gastro ERP Ultimate Pro</title>
-    <link rel="stylesheet" href="./style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>GASTRO PRO 2026</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <style>
+        :root { --bg: #0f172a; --card: #1e293b; --accent: #3b82f6; --text: #f8fafc; }
+        body { font-family: sans-serif; margin: 0; background: var(--bg); color: var(--text); }
+        header { background: var(--card); padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #334155; }
+        .screen { padding: 15px; }
+        .hidden { display: none !important; }
+        
+        /* Mapa stolů */
+        #tables-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+        .table-box { height: 80px; background: var(--card); border-radius: 10px; border: 1px solid #475569; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .table-box.occupied { border-color: #ef4444; background: #450a0a; }
+        
+        /* Objednávka */
+        .order-layout { display: flex; flex-direction: column; gap: 10px; }
+        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .m-btn { background: var(--accent); color: white; border: none; padding: 15px; border-radius: 8px; font-weight: bold; }
+        .bill-area { background: white; color: black; padding: 15px; border-radius: 10px; margin-top: 10px; }
+        
+        /* Tlačítka */
+        button { cursor: pointer; }
+        .btn-pay { background: #22c55e; color: white; border: none; padding: 15px; width: 100%; border-radius: 8px; font-weight: bold; margin-top: 10px; }
+        .btn-qr { background: #6366f1; color: white; border: none; padding: 15px; width: 100%; border-radius: 8px; font-weight: bold; margin-top: 5px; }
+        
+        /* Modal */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 100; }
+        .modal-content { background: white; color: black; padding: 20px; border-radius: 15px; text-align: center; }
+    </style>
 </head>
 <body>
-    <div id="app">
-        <header>
-            <div id="user-info">👤 <span>Profi Obsluha</span></div>
-            <h1 onclick="showTables()">GASTRO PRO 2026</h1>
-            <div class="header-btns">
-                <button class="btn-admin-nav" onclick="showAdmin()">📊 ADMIN & DASHBOARD</button>
-            </div>
-        </header>
 
-        <div id="screen-tables" class="screen">
-            <div class="top-stats">
-                <span>Dnešní tržba: <b id="stat-revenue">0</b> Kč</span>
+    <header>
+        <div>👤 Profi Obsluha</div>
+        <h1 onclick="location.reload()">GASTRO PRO</h1>
+        <button onclick="showAdmin()" style="padding: 8px; background: #475569; color: white; border: none; border-radius: 5px;">ADMIN</button>
+    </header>
+
+    <div id="screen-tables" class="screen">
+        <div>Dnešní tržba: <b id="stat-revenue">0</b> Kč</div>
+        <div id="tables-grid"></div>
+    </div>
+
+    <div id="screen-order" class="screen hidden">
+        <div class="order-layout">
+            <h2 id="active-table-title">Stůl</h2>
+            <div id="menu-items" class="menu-grid"></div>
+            <div class="bill-area">
+                <div id="bill-list"></div>
+                <hr>
+                <div style="font-weight: bold;">CELKEM: <span id="bill-total">0</span> Kč</div>
             </div>
-            <div id="tables-grid"></div>
+            <button class="btn-pay" onclick="pay('cash')">HOTOVĚ ✅</button>
+            <button class="btn-qr" onclick="openQR()">QR PLATBA 📱</button>
+            <button onclick="showTables()" style="padding: 10px; background: #64748b; color: white; border: none; border-radius: 8px; margin-top: 10px;">ZPĚT</button>
         </div>
+    </div>
 
-        <div id="screen-order" class="screen hidden">
-            <div class="order-layout">
-                <div class="menu-side">
-                    <div id="menu-items" class="menu-grid"></div>
-                </div>
-                <div class="bill-side">
-                    <div class="bill-header">
-                        <h2 id="active-table-title">Stůl</h2>
-                        <button class="back-x" onclick="showTables()">✕</button>
-                    </div>
-                    <div id="bill-list" class="bill-items"></div>
-                    <div class="bill-footer">
-                        <div class="total-row">CELKEM: <span id="bill-total">0</span> Kč</div>
-                        <div class="btn-group">
-                            <button class="btn-qr" onclick="openQR()">📱 QR PLATBA</button>
-                            <button class="btn-pay" onclick="completePayment('cash')">HOTOVĚ ✅</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <div id="screen-admin" class="screen hidden">
+        <h2>Admin Panel</h2>
+        <div id="admin-log"></div>
+        <button onclick="showTables()" style="padding: 15px; width: 100%; background: #475569; color: white; border: none; border-radius: 8px;">ZPĚT</button>
+    </div>
+
+    <div id="qr-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>QR Platba</h3>
+            <div id="qrcode"></div>
+            <button onclick="closeQR()" style="margin-top: 10px; padding: 10px;">ZAVŘÍT</button>
+            <button onclick="pay('qr')" style="margin-top: 10px; padding: 10px; background: #22c55e; color: white; border: none;">POTVRDIT PLACENO</button>
         </div>
+    </div>
 
-        <div id="screen-admin" class="screen hidden">
-            <div class="admin-tabs">
-                <button onclick="renderDashboard()">📈 DASHBOARD</button
-                                                                       <script src="./app.js"></script>
+    <script>
+        // DATA
+        let recipes = [
+            { id: 1, name: "Pivo 12°", price: 55 },
+            { id: 2, name: "Kofola 0.5", price: 45 },
+            { id: 3, name: "Svíčková", price: 245 },
+            { id: 4, name: "Guláš", price: 195 }
+        ];
+        
+        let tables = JSON.parse(localStorage.getItem('g_tables')) || Array.from({length: 12}, (_, i) => ({
+            id: i + 1, name: "Stůl " + (i + 1), items: [], status: 'free'
+        }));
+
+        let logs = JSON.parse(localStorage.getItem('g_logs')) || [];
+        let activeTable = null;
+
+        // INICIALIZACE
+        function init() {
+            const grid = document.getElementById('tables-grid');
+            grid.innerHTML = '';
+            let totalDay = 0;
+            logs.forEach(l => totalDay += l.price);
+            document.getElementById('stat-revenue').innerText = totalDay;
+
+            tables.forEach(t => {
+                const div = document.createElement('div');
+                div.className = 'table-box ' + t.status;
+                let sum = 0;
+                t.items.forEach(item => sum += item.price);
+                div.innerHTML = '<strong>' + t.name + '</strong>' + (sum > 0 ? sum + ' Kč' : 'Volno');
+                div.onclick = () => openOrder(t);
+                grid.appendChild(div);
+            });
+        }
+
+        function openOrder(t) {
+            activeTable = t;
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            document.getElementById('screen-order').classList.remove('hidden');
+            document.getElementById('active-table-title').innerText = t.name;
+            
+            const menu = document.getElementById('menu-items');
+            menu.innerHTML = '';
+            recipes.forEach(r => {
+                const b = document.createElement('button');
+                b.className = 'm-btn';
+                b.innerHTML = r.name + '<br>' + r.price + ' Kč';
+                b.onclick = () => {
+                    activeTable.items.push(r);
+                    activeTable.status = 'occupied';
+                    updateBill();
+                    save();
+                };
+                menu.appendChild(b);
+            });
+            updateBill();
+        }
+
+        function updateBill() {
+            const list = document.getElementById('bill-list');
+            let total = 0;
+            list.innerHTML = '';
+            activeTable.items.forEach(item => {
+                total += item.price;
+                list.innerHTML += '<div>' + item.name + ' - ' + item.price + ' Kč</div>';
+            });
+            document.getElementById('bill-total').innerText = total;
+        }
+
+        function pay(method) {
+            activeTable.items.forEach(i => logs.push({price: i.price, date: new Date()}));
+            activeTable.items = [];
+            activeTable.status = 'free';
+            save();
+            closeQR();
+            showTables();
+        }
+
+        function openQR() {
+            const total = document.getElementById('bill-total').innerText;
+            if(total == 0) return;
+            document.getElementById('qr-modal').classList.remove('hidden');
+            document.getElementById('qrcode').innerHTML = '';
+            new QRCode(document.getElementById("qrcode"), {
+                text: "SPD*1.0*ACC:123456789/0100*AM:" + total + "*CUR:CZK",
+                width: 150, height: 150
+            });
+        }
+
+        function closeQR() { document.getElementById('qr-modal').classList.add('hidden'); }
+        function showTables() { 
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            document.getElementById('screen-tables').classList.remove('hidden');
+            init(); 
+        }
+        function showAdmin() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            document.getElementById('screen-admin').classList.remove('hidden');
+            document.getElementById('admin-log').innerHTML = 'Posledních 10 plateb:<br>' + 
+                logs.slice(-10).map(l => l.price + ' Kč').join(', ');
+        }
+        function save() {
+            localStorage.setItem('g_tables', JSON.stringify(tables));
+            localStorage.setItem('g_logs', JSON.stringify(logs));
+        }
+
+        window.onload = init;
+    </script>
 </body>
 </html>
-
