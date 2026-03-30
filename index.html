@@ -3,48 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gastro ERP</title>
+    <title>Gastro ERP Ultimate Pro</title>
     <link rel="stylesheet" href="./style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
     <div id="app">
         <header>
-            <div id="user-info">👤 Admin</div>
-            <h1 onclick="showTables()">GASTRO ERP</h1>
+            <div id="user-info">👤 <span>Profi Obsluha</span></div>
+            <h1 onclick="showTables()">GASTRO PRO 2026</h1>
             <div class="header-btns">
-                <button onclick="showAdmin()">📊 ADMIN</button>
+                <button class="btn-admin-nav" onclick="showAdmin()">📊 ADMIN & DASHBOARD</button>
             </div>
         </header>
 
         <div id="screen-tables" class="screen">
+            <div class="top-stats">
+                <span>Dnešní tržba: <b id="stat-revenue">0</b> Kč</span>
+            </div>
             <div id="tables-grid"></div>
         </div>
 
         <div id="screen-order" class="screen hidden">
-            <div class="order-container" style="display:flex; height: 80vh;">
-                <div id="menu-items" style="flex:2; padding:10px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;"></div>
-                <div class="bill-side" style="flex:1.2; background:white; color:black; padding:15px; display:flex; flex-direction:column;">
-                    <h2 id="active-table-title">Stůl</h2>
-                    <div id="bill-list" style="flex:1; overflow-y:auto;"></div>
-                    <div style="border-top:2px solid #ccc; padding-top:10px;">
-                        <h3>CELKEM: <span id="bill-total">0</span> Kč</h3>
-                        <button onclick="payWithPrint()" style="width:100%; padding:15px; background:#22c55e; color:white; font-weight:bold; margin-bottom:5px;">PLATBA ✅</button>
-                        <button onclick="showTables()" style="width:100%; padding:10px; background:#ef4444; color:white;">ZPĚT ❌</button>
+            <div class="order-layout">
+                <div class="menu-side">
+                    <div id="menu-items" class="menu-grid"></div>
+                </div>
+                <div class="bill-side">
+                    <div class="bill-header">
+                        <h2 id="active-table-title">Stůl</h2>
+                        <button class="back-x" onclick="showTables()">✕</button>
+                    </div>
+                    <div id="bill-list" class="bill-items"></div>
+                    <div class="bill-footer">
+                        <div class="total-row">CELKEM: <span id="bill-total">0</span> Kč</div>
+                        <div class="btn-group">
+                            <button class="btn-qr" onclick="openQR()">📱 QR PLATBA</button>
+                            <button class="btn-pay" onclick="completePayment('cash')">HOTOVĚ ✅</button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
         <div id="screen-admin" class="screen hidden">
-            <div style="display:flex; gap:5px; padding:10px;">
-                <button onclick="renderDashboard()" style="flex:1; padding:10px;">DASHBOARD</button>
-                <button onclick="renderInventoryEditor()" style="flex:1; padding:10px;">SKLAD</button>
-                <button onclick="renderRecipeEditor()" style="flex:1; padding:10px;">RECEPTY</button>
-                <button onclick="showTables()" style="padding:10px; background:#64748b; color:white;">ZPĚT</button>
-            </div>
-            <div id="admin-content" style="padding:20px;"></div>
-        </div>
-    </div>
-    <script src="./app.js"></script>
-</body>
-</html>
+            <div class="admin-tabs">
+                <button onclick="renderDashboard()">📈 DASHBOARD</button
