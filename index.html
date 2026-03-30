@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GASTRO PRO 2026 - FULL SYSTEM</title>
+    <title>GASTRO PRO 2026 - KDS & BON EDITION</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root { --bg: #0f172a; --card: #1e293b; --accent: #3b82f6; --success: #22c55e; --warn: #f59e0b; --danger: #ef4444; --text: #f8fafc; }
@@ -19,11 +19,16 @@
         .table-box.reserved { border-color: var(--warn); background: #422006; }
         .table-box small { font-size: 10px; margin-top: 5px; opacity: 0.8; }
 
+        /* KDS - Kuchyňský displej */
+        .kds-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        .kds-card { background: var(--card); border-left: 5px solid var(--accent); padding: 15px; border-radius: 8px; position: relative; }
+        .kds-card.late { border-left-color: var(--danger); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        .kds-time { position: absolute; top: 10px; right: 10px; font-size: 12px; font-weight: bold; }
+
         /* Položky a Účty */
         .bill-area { background: white; color: black; padding: 12px; border-radius: 10px; margin: 10px 0; max-height: 200px; overflow-y: auto; }
         .item-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #eee; font-size: 14px; }
-        .split-item { display: flex; justify-content: space-between; padding: 12px; margin-bottom: 5px; background: #f1f5f9; color: #000; border-radius: 8px; font-weight: bold; }
-        .split-item.selected { background: var(--success); color: white; }
 
         /* Menu */
         .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
@@ -32,27 +37,27 @@
         /* Tlačítka */
         .btn { padding: 15px; border: none; border-radius: 10px; font-weight: bold; color: white; width: 100%; margin-top: 10px; font-size: 14px; }
         .btn-pay { background: var(--success); }
-        .btn-split { background: var(--accent); }
-        .btn-res { background: var(--warn); }
+        .btn-bon { background: var(--warn); }
         .btn-back { background: #475569; }
+        .btn-done { background: var(--success); padding: 8px; font-size: 12px; margin-top: 10px; }
         
         /* Dashboard & Sklad */
-        .stat-card { background: var(--card); padding: 15px; border-radius: 12px; text-align: center; border: 1px solid #334155; margin-bottom: 15px; }
         .stock-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
         .stock-table td, .stock-table th { padding: 10px; border-bottom: 1px solid #334155; text-align: left; }
-        .low-stock { color: var(--danger); font-weight: bold; }
 
         /* Modaly */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 100; }
         .modal-content { background: white; color: black; padding: 20px; border-radius: 20px; width: 90%; max-height: 80vh; overflow-y: auto; }
-        input[type="datetime-local"] { width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; }
     </style>
 </head>
 <body>
 
     <header>
         <h1 onclick="location.reload()">GASTRO PRO 2026</h1>
-        <button onclick="showAdmin()" style="background:#475569; color:white; border:none; padding:8px 15px; border-radius:8px;">📊 SKLAD / DASH</button>
+        <div style="display:flex; gap:5px;">
+            <button onclick="showKDS()" style="background:var(--accent); color:white; border:none; padding:8px; border-radius:8px;">👨‍🍳 KUCHYŇ</button>
+            <button onclick="showAdmin()" style="background:#475569; color:white; border:none; padding:8px; border-radius:8px;">📊 DASH</button>
+        </div>
     </header>
 
     <div id="screen-tables" class="screen">
@@ -68,73 +73,50 @@
                 CELKEM: <span id="bill-total">0</span> Kč
             </div>
         </div>
+        <button class="btn btn-bon" onclick="sendToKitchen()">POSLAT DO KUCHYNĚ 👨‍🍳</button>
         <button class="btn btn-pay" onclick="payFull()">ZAPLATIT VŠE ✅</button>
-        <button class="btn btn-split" onclick="openSplitModal()">DĚLIT ÚČET ✂️</button>
-        <button class="btn btn-res" onclick="openResModal()">REZERVOVAT 📅</button>
         <button class="btn btn-back" onclick="showTables()">ZPĚT</button>
     </div>
 
+    <div id="screen-kds" class="screen hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2>Kuchyň & Bar</h2>
+            <button onclick="showTables()" class="btn-back" style="padding:5px 15px; width:auto;">ZAVŘÍT</button>
+        </div>
+        <div id="kds-list" class="kds-grid"></div>
+    </div>
+
     <div id="screen-admin" class="screen hidden">
-        <div class="stat-card">
-            <h2 id="dash-total" style="margin:0; color:var(--success);">0 Kč</h2>
+        <div id="dash-info" style="background:var(--card); padding:15px; border-radius:12px; text-align:center;">
+            <h2 id="dash-total" style="color:var(--success); margin:0;">0 Kč</h2>
             <p>Dnešní tržba</p>
         </div>
-        <h3>📦 Aktuální stav skladu</h3>
-        <table class="stock-table">
-            <thead><tr><th>Surovina</th><th>Množství</th><th>Jedn.</th></tr></thead>
-            <tbody id="stock-body"></tbody>
-        </table>
-        <button class="btn btn-back" onclick="showTables()">ZPĚT NA STOLY</button>
-    </div>
-
-    <div id="res-modal" class="modal hidden">
-        <div class="modal-content">
-            <h3>Nová rezervace</h3>
-            <input type="datetime-local" id="res-time">
-            <button class="btn btn-pay" onclick="saveReservation()">ULOŽIT</button>
-            <button class="btn btn-back" onclick="closeModal('res-modal')">ZRUŠIT</button>
-            <button class="btn" style="background:red;" onclick="cancelRes()">SMAZAT REZERVACI</button>
-        </div>
-    </div>
-
-    <div id="split-modal" class="modal hidden">
-        <div class="modal-content">
-            <h3>Vyberte položky k platbě</h3>
-            <div id="split-list"></div>
-            <hr>
-            <div style="font-weight:bold; margin:10px 0;">K ÚHRADĚ: <span id="split-total">0</span> Kč</div>
-            <button class="btn btn-pay" onclick="confirmSplitPay()">ZAPLATIT VYBRANÉ</button>
-            <button class="btn btn-back" onclick="closeModal('split-modal')">ZPĚT</button>
-        </div>
+        <h3>📦 Sklad</h3>
+        <table class="stock-table"><tbody id="stock-body"></tbody></table>
+        <button class="btn btn-back" onclick="showTables()">ZPĚT</button>
     </div>
 
     <script>
-        // --- DATA A INICIALIZACE ---
-        const units = { "PIVO": "ml", "KOFOLA": "ml", "MASO": "g", "KNEDLIK": "ks", "KAVA": "g" };
-
-        // Reset skladu pokud je v paměti starý formát (undefined chyba)
-        if(localStorage.getItem('g_stock') && localStorage.getItem('g_stock').includes('"1":')) {
-            localStorage.removeItem('g_stock');
-        }
-
+        // --- DATA ---
         let stock = JSON.parse(localStorage.getItem('g_stock')) || {
             "PIVO": 50000, "KOFOLA": 30000, "MASO": 10000, "KNEDLIK": 50, "KAVA": 2000
         };
 
         const menuItems = [
-            { id:1, name:"Pivo 12", price:55, recipe: { "PIVO": 500 } },
-            { id:2, name:"Kofola", price:40, recipe: { "KOFOLA": 500 } },
-            { id:3, name:"Svíčková", price:255, recipe: { "MASO": 150, "KNEDLIK": 4 } },
-            { id:4, name:"Guláš", price:185, recipe: { "MASO": 150, "KNEDLIK": 4 } },
-            { id:5, name:"Espresso", price:45, recipe: { "KAVA": 8 } }
+            { id:1, name:"Pivo 12", price:55, cat:"BAR", recipe: { "PIVO": 500 } },
+            { id:2, name:"Kofola", price:40, cat:"BAR", recipe: { "KOFOLA": 500 } },
+            { id:3, name:"Svíčková", price:255, cat:"KUCHYN", recipe: { "MASO": 150, "KNEDLIK": 4 } },
+            { id:4, name:"Guláš", price:185, cat:"KUCHYN", recipe: { "MASO": 150, "KNEDLIK": 4 } },
+            { id:5, name:"Espresso", price:45, cat:"BAR", recipe: { "KAVA": 8 } }
         ];
 
         let tables = JSON.parse(localStorage.getItem('g_tables')) || Array.from({length: 12}, (_, i) => ({
-            id: i+1, name: "Stůl "+(i+1), items: [], status: 'free', res: null
+            id: i+1, name: "Stůl "+(i+1), items: [], status: 'free'
         }));
+        
+        let kdsOrders = JSON.parse(localStorage.getItem('g_kds')) || [];
         let logs = JSON.parse(localStorage.getItem('g_logs')) || [];
         let activeTable = null;
-        let selectedForSplit = [];
 
         function init() {
             const grid = document.getElementById('tables-grid');
@@ -143,15 +125,13 @@
                 const div = document.createElement('div');
                 div.className = `table-box ${t.status}`;
                 let total = t.items.reduce((s, i) => s + i.price, 0);
-                let info = t.status === 'reserved' ? "📅 "+new Date(t.res).toLocaleString([], {day:'numeric', month:'numeric', hour:'2-digit', minute:'2-digit'}) : (total > 0 ? total+" Kč" : "Volno");
-                div.innerHTML = `<strong>${t.name}</strong><small>${info}</small>`;
+                div.innerHTML = `<strong>${t.name}</strong><small>${total > 0 ? total+" Kč" : "Volno"}</small>`;
                 div.onclick = () => openOrder(t);
                 grid.appendChild(div);
             });
             save();
         }
 
-        // --- POKLADNA ---
         function openOrder(t) {
             activeTable = t;
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
@@ -168,7 +148,7 @@
 
         function addItem(id) {
             const item = menuItems.find(x => x.id === id);
-            activeTable.items.push({...item});
+            activeTable.items.push({...item, sent: false});
             activeTable.status = 'occupied';
             renderBill();
             save();
@@ -179,129 +159,108 @@
             let total = 0;
             list.innerHTML = activeTable.items.map(i => {
                 total += i.price;
-                return `<div class="item-row"><span>${i.name}</span><b>${i.price} Kč</b></div>`;
+                return `<div class="item-row" style="opacity:${i.sent ? 0.5 : 1}">
+                    <span>${i.sent ? '✓ ' : ''}${i.name}</span>
+                    <b>${i.price} Kč</b>
+                </div>`;
             }).join('');
             document.getElementById('bill-total').innerText = total;
         }
 
-        // --- SKLAD A PLATBY ---
-        function deductFromStock(item) {
-            if (item.recipe) {
-                for (let ingredient in item.recipe) {
-                    if (stock[ingredient] !== undefined) {
-                        stock[ingredient] -= item.recipe[ingredient];
-                    }
-                }
-            }
+        // --- BONOVÁNÍ & KDS ---
+        function sendToKitchen() {
+            const unsentItems = activeTable.items.filter(i => !i.sent);
+            if(unsentItems.length === 0) return alert("Vše již bylo posláno.");
+
+            const orderId = Date.now();
+            kdsOrders.push({
+                id: orderId,
+                table: activeTable.name,
+                time: new Date().toISOString(),
+                items: unsentItems.map(i => ({ name: i.name, cat: i.cat })),
+                status: 'pending'
+            });
+
+            activeTable.items.forEach(i => i.sent = true);
+            alert("BON odeslán!");
+            save();
+            renderBill();
         }
 
+        function showKDS() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            document.getElementById('screen-kds').classList.remove('hidden');
+            renderKDS();
+        }
+
+        function renderKDS() {
+            const list = document.getElementById('kds-list');
+            list.innerHTML = '';
+            
+            kdsOrders.forEach((order, idx) => {
+                const waitTime = Math.floor((new Date() - new Date(order.time)) / 60000);
+                const isLate = waitTime > 10;
+                
+                const card = document.createElement('div');
+                card.className = `kds-card ${isLate ? 'late' : ''}`;
+                card.innerHTML = `
+                    <div class="kds-time">${waitTime} min</div>
+                    <strong>${order.table}</strong><hr>
+                    ${order.items.map(i => `<div>• ${i.name} <small>(${i.cat})</small></div>`).join('')}
+                    <button class="btn btn-done" onclick="finishOrder(${idx})">HOTOVO / VYDÁNO</button>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function finishOrder(idx) {
+            kdsOrders.splice(idx, 1);
+            save();
+            renderKDS();
+        }
+
+        // --- PLATBA & ADMIN ---
         function payFull() {
             const total = activeTable.items.reduce((s, i) => s + i.price, 0);
             if(total > 0) {
                 activeTable.items.forEach(item => {
-                    deductFromStock(item);
+                    if (item.recipe) {
+                        for (let ing in item.recipe) stock[ing] -= item.recipe[ing];
+                    }
                     logs.push({ price: item.price, date: new Date().toISOString() });
                 });
             }
             activeTable.items = [];
             activeTable.status = 'free';
-            activeTable.res = null;
+            save();
             showTables();
         }
 
-        function openSplitModal() {
-            if(activeTable.items.length === 0) return;
-            selectedForSplit = [];
-            document.getElementById('split-modal').classList.remove('hidden');
-            renderSplitList();
-        }
-
-        function renderSplitList() {
-            const list = document.getElementById('split-list');
-            list.innerHTML = activeTable.items.map((item, idx) => {
-                const isSelected = selectedForSplit.includes(idx);
-                return `<div class="split-item ${isSelected ? 'selected' : ''}" onclick="toggleSplitItem(${idx})">
-                    <span>${item.name}</span><span>${item.price} Kč</span>
-                </div>`;
-            }).join('');
-            calculateSplitTotal();
-        }
-
-        function toggleSplitItem(idx) {
-            if(selectedForSplit.includes(idx)) selectedForSplit = selectedForSplit.filter(i => i !== idx);
-            else selectedForSplit.push(idx);
-            renderSplitList();
-        }
-
-        function calculateSplitTotal() {
-            let total = 0;
-            selectedForSplit.forEach(idx => total += activeTable.items[idx].price);
-            document.getElementById('split-total').innerText = total;
-        }
-
-        function confirmSplitPay() {
-            if(selectedForSplit.length === 0) return;
-            const remainingItems = [];
-            activeTable.items.forEach((item, idx) => {
-                if(selectedForSplit.includes(idx)) {
-                    deductFromStock(item);
-                    logs.push({ price: item.price, date: new Date().toISOString() });
-                } else {
-                    remainingItems.push(item);
-                }
-            });
-            activeTable.items = remainingItems;
-            if(activeTable.items.length === 0) activeTable.status = 'free';
-            closeModal('split-modal');
-            save();
-            renderBill();
-        }
-
-        // --- ADMIN ---
         function showAdmin() {
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
             document.getElementById('screen-admin').classList.remove('hidden');
             document.getElementById('dash-total').innerText = logs.reduce((s, l) => s + l.price, 0) + " Kč";
-            
-            const stockBody = document.getElementById('stock-body');
-            stockBody.innerHTML = '';
+            const body = document.getElementById('stock-body');
+            body.innerHTML = '';
             for (let item in stock) {
-                let isLow = stock[item] < 2000;
-                stockBody.innerHTML += `<tr>
-                    <td>${item}</td>
-                    <td class="${isLow ? 'low-stock' : ''}">${stock[item]}</td>
-                    <td>${units[item] || 'ks'}</td>
-                </tr>`;
+                body.innerHTML += `<tr><td>${item}</td><td>${stock[item]}</td></tr>`;
             }
         }
 
-        // --- POMOCNÉ ---
-        function openResModal() { document.getElementById('res-modal').classList.remove('hidden'); }
-        function saveReservation() {
-            const time = document.getElementById('res-time').value;
-            if(!time) return alert("Vyberte čas!");
-            activeTable.status = 'reserved';
-            activeTable.res = time;
-            closeModal('res-modal');
-            showTables();
-        }
-        function cancelRes() {
-            activeTable.status = 'free';
-            activeTable.res = null;
-            closeModal('res-modal');
-            showTables();
-        }
         function showTables() {
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
             document.getElementById('screen-tables').classList.remove('hidden');
             init();
         }
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-        function save() { 
+
+        function save() {
             localStorage.setItem('g_tables', JSON.stringify(tables));
             localStorage.setItem('g_logs', JSON.stringify(logs));
             localStorage.setItem('g_stock', JSON.stringify(stock));
+            localStorage.setItem('g_kds', JSON.stringify(kdsOrders));
         }
+
+        setInterval(renderKDS, 30000); // Obnovit čas na KDS každých 30s
         window.onload = init;
     </script>
 </body>
