@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GASTRO ERP PRO 2026 - ULTIMATE WAREHOUSE</title>
+    <title>GASTRO ERP PRO 2026 - RECIPE EDITOR</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root { --bg: #0f172a; --card: #1e293b; --accent: #3b82f6; --success: #22c55e; --warn: #f59e0b; --danger: #ef4444; --text: #f8fafc; }
@@ -12,135 +12,86 @@
         .screen { padding: 15px; padding-bottom: 80px; }
         .hidden { display: none !important; }
         
-        /* Navigace */
         .nav-bar { position: fixed; bottom: 0; width: 100%; background: var(--card); display: flex; justify-content: space-around; padding: 10px 0; border-top: 2px solid #334155; z-index: 100; }
         .nav-item { color: white; text-decoration: none; font-size: 11px; text-align: center; opacity: 0.5; cursor: pointer; }
         .nav-item.active { opacity: 1; color: var(--accent); font-weight: bold; }
 
-        /* Mapa stolů */
+        .admin-section { background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 15px; border-left: 4px solid var(--accent); }
+        .data-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #334155; font-size: 13px; align-items: center; }
+        
+        input, select { background: #334155; border: 1px solid #475569; color: white; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; margin-bottom: 5px; }
+        .btn { padding: 15px; border: none; border-radius: 10px; font-weight: bold; color: white; cursor: pointer; width: 100%; margin-top: 5px; }
+
+        .recipe-tag { background: #334155; padding: 3px 8px; border-radius: 5px; font-size: 11px; margin-right: 5px; border: 1px solid #475569; }
+        .bill-area { background: white; color: black; padding: 12px; border-radius: 10px; margin: 10px 0; }
         #tables-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .table-box { height: 85px; background: var(--card); border-radius: 12px; border: 1px solid #475569; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
         .table-box.occupied { border-color: var(--danger); background: #450a0a; }
-
-        /* Skladové sekce */
-        .admin-section { background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 15px; border-left: 4px solid var(--accent); }
-        .data-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #334155; font-size: 13px; }
-        .sub-recipe-tag { font-size: 10px; color: var(--warn); border: 1px solid var(--warn); padding: 1px 4px; border-radius: 4px; margin-left: 5px; }
-
-        /* UI Prvky */
-        .btn { padding: 15px; border: none; border-radius: 10px; font-weight: bold; color: white; cursor: pointer; }
-        .btn-full { width: 100%; margin-top: 8px; }
-        input, select { background: #334155; border: 1px solid #475569; color: white; padding: 12px; border-radius: 8px; margin-bottom: 5px; width: 100%; box-sizing: border-box; }
-        
-        .bill-area { background: white; color: black; padding: 12px; border-radius: 10px; margin: 10px 0; }
-        .cat-bar { display: flex; gap: 5px; overflow-x: auto; margin-bottom: 10px; padding-bottom: 5px; }
-        .cat-btn { background: #334155; border: 1px solid #475569; color: white; padding: 8px 15px; border-radius: 20px; font-size: 11px; white-space: nowrap; }
-        .cat-btn.active { background: var(--accent); border-color: var(--accent); }
     </style>
 </head>
 <body>
 
     <header>
         <h1 style="font-size: 16px;">GASTRO ERP PRO 2026</h1>
-        <div id="status" style="font-size:12px; color:var(--success);">● SYSTÉM AKTIVNÍ</div>
+        <div style="font-size:12px; color:var(--success);">● EDITACE AKTIVNÍ</div>
     </header>
 
     <div id="screen-tables" class="screen">
         <div id="tables-grid"></div>
     </div>
 
-    <div id="screen-order" class="screen hidden">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h2 id="table-title" style="margin:0;">Stůl</h2>
-            <button onclick="openCustomerModal()" style="background:var(--warn); border:none; padding:5px 10px; border-radius:5px; color:black; font-weight:bold; font-size:11px;">👤 HOST</button>
-        </div>
-        <div id="current-guest" style="font-size:11px; color:var(--warn); margin-top:4px;"></div>
-        
-        <div class="cat-bar" id="category-bar"></div>
-        <div id="menu-box" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;"></div>
-        
-        <div class="bill-area">
-            <div id="bill-items"></div>
-            <div id="discount-line" style="color:var(--danger); font-size:11px; text-align:right; font-weight:bold;"></div>
-            <div style="text-align:right; font-weight:bold; border-top:1px solid #eee; margin-top:8px; padding-top:4px;">CELKEM: <span id="bill-total">0</span> Kč</div>
-        </div>
-        
-        <button class="btn btn-full" style="background:var(--success);" onclick="processPayment()">ZAPLATIT A ODESLAT ✅</button>
-        <button class="btn btn-full" style="background:#475569;" onclick="showScreen('tables')">ZPĚT</button>
-    </div>
-
     <div id="screen-admin" class="screen hidden">
-        <div class="admin-section" style="border-left-color: var(--success);">
-            <h3>📊 Exporty & Data</h3>
-            <button class="btn btn-full" style="background:var(--accent); padding:10px;" onclick="exportToCSV()">📥 STÁHNOUT TRŽBY (CSV)</button>
-        </div>
-
-        <div class="admin-section">
-            <h3>📥 Příjem zboží (Naskladnění)</h3>
-            <select id="restock-target"></select>
-            <input type="number" id="restock-qty" placeholder="Množství k přičtení">
-            <button class="btn btn-full" style="background:var(--accent); padding:10px;" onclick="doRestock()">POTVRDIT PŘÍJEM</button>
-        </div>
-
-        <div class="admin-section">
-            <h3>👨‍🍳 Sklad Kuchyně</h3>
-            <div id="list-kuchyn"></div>
-        </div>
-
         <div class="admin-section" style="border-left-color: var(--warn);">
-            <h3>🍺 Sklad Bar</h3>
-            <div id="list-bar"></div>
+            <h3>📝 EDITACE RECEPTUR</h3>
+            <label style="font-size:12px;">Vyberte jídlo z menu:</label>
+            <select id="edit-recipe-item" onchange="loadRecipeToEditor()"></select>
+            
+            <div id="recipe-editor-ui" style="background:#0f172a; padding:10px; border-radius:8px; margin-top:10px;">
+                <label style="font-size:12px;">Přidat surovinu do receptu:</label>
+                <div style="display:flex; gap:5px;">
+                    <select id="edit-ingredient-select" style="width:60%"></select>
+                    <input type="number" id="edit-ingredient-qty" placeholder="Kolik" style="width:30%">
+                </div>
+                <button class="btn" style="background:var(--accent); padding:8px;" onclick="addIngredientToRecipe()">PŘIDAT DO RECEPTU</button>
+                <div id="current-recipe-display" style="margin-top:10px; font-size:12px;"></div>
+            </div>
+        </div>
+
+        <div class="admin-section">
+            <h3>📦 Sklady (Stav)</h3>
+            <div id="list-kuchyn"></div>
+            <div id="list-bar" style="margin-top:10px; border-top:1px solid #334155; padding-top:10px;"></div>
         </div>
     </div>
 
-    <div id="modal-customer" class="modal hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:200; display:flex; align-items:center; justify-content:center;">
-        <div style="background:white; color:black; padding:20px; border-radius:15px; width:85%;">
-            <h3>Přiřadit VIP hosta</h3>
-            <div id="customer-select-list"></div>
-            <button class="btn btn-full" style="background:#475569;" onclick="closeCustomerModal()">ZAVŘÍT</button>
-        </div>
+    <div id="screen-order" class="screen hidden">
+        <h2 id="table-title">Stůl</h2>
+        <div id="menu-box" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;"></div>
+        <div class="bill-area" id="bill-items"></div>
+        <button class="btn" style="background:var(--success);" onclick="processPayment()">ZAPLATIT ✅</button>
+        <button class="btn" style="background:#475569;" onclick="showScreen('tables')">ZPĚT</button>
     </div>
 
     <div class="nav-bar">
         <div class="nav-item active" onclick="showScreen('tables')" id="nav-tables">🪑<br>Stoly</div>
-        <div class="nav-item" onclick="showScreen('admin')" id="nav-admin">📦<br>Sklady</div>
-        <div class="nav-item" onclick="alert('KDS se připravuje...')">👨‍🍳<br>KDS</div>
+        <div class="nav-item" onclick="showScreen('admin')" id="nav-admin">📦<br>Admin</div>
+        <div class="nav-item" onclick="alert('KDS je připojen')">👨‍🍳<br>KDS</div>
     </div>
 
     <script>
-        // --- DATA SKLADŮ (Rozděleno) ---
-        let warehouse = JSON.parse(localStorage.getItem('g_warehouse_v1')) || {
-            kuchyn: {
-                "Hovězí maso": { qty: 5000, unit: "g" },
-                "Mouka": { qty: 10000, unit: "g" },
-                "Vejce": { qty: 60, unit: "ks" },
-                "Knedlík": { qty: 10, unit: "ks", isSub: true, recipe: {"Mouka": 200, "Vejce": 0.5} }
-            },
-            bar: {
-                "Pivo Sud": { qty: 50000, unit: "ml" },
-                "Káva zrnková": { qty: 2000, unit: "g" },
-                "Mléko čerstvé": { qty: 10000, unit: "ml" }
-            }
+        // --- DATA ---
+        let warehouse = JSON.parse(localStorage.getItem('g_warehouse_v2')) || {
+            kuchyn: { "Hovězí maso": {qty:5000, unit:"g"}, "Knedlík": {qty:10, unit:"ks", isSub:true, recipe:{"Mouka":200}} },
+            bar: { "Pivo Sud": {qty:50000, unit:"ml"}, "Káva": {qty:2000, unit:"g"} }
         };
 
-        const menuItems = [
-            { id: 1, name: "Pivo 12°", price: 55, cat: "Bar", recipe: {"Pivo Sud": 500} },
-            { id: 2, name: "Cappuccino", price: 65, cat: "Káva", recipe: {"Káva zrnková": 8, "Mléko čerstvé": 150} },
-            { id: 3, name: "Svíčková na smetaně", price: 285, cat: "Jídla", recipe: {"Hovězí maso": 150, "Knedlík": 4} }
+        let menuItems = JSON.parse(localStorage.getItem('g_menu_v2')) || [
+            { id: 1, name: "Pivo 12°", price: 55, recipe: {"Pivo Sud": 500} },
+            { id: 2, name: "Svíčková", price: 285, recipe: {"Hovězí maso": 150, "Knedlík": 4} }
         ];
 
-        let customers = JSON.parse(localStorage.getItem('g_customers')) || [
-            { id: 1, name: "Jan Novák", discount: 10, spent: 0 },
-            { id: 2, name: "Štamgast Karel", discount: 15, spent: 0 }
-        ];
-
-        let tables = JSON.parse(localStorage.getItem('g_tables')) || Array.from({length: 12}, (_, i) => ({
-            id: i+1, name: "Stůl "+(i+1), items: [], guestId: null
-        }));
-
-        let salesLog = JSON.parse(localStorage.getItem('g_sales_log')) || [];
+        let tables = Array.from({length: 12}, (_, i) => ({ id: i+1, name: "Stůl "+(i+1), items: [] }));
         let activeTable = null;
-        let currentCat = "Vše";
 
         function init() {
             const grid = document.getElementById('tables-grid');
@@ -148,15 +99,13 @@
             tables.forEach(t => {
                 const div = document.createElement('div');
                 div.className = `table-box ${t.items.length > 0 ? 'occupied' : ''}`;
-                let total = t.items.reduce((s, i) => s + i.price, 0);
-                div.innerHTML = `<strong>${t.name}</strong><small>${total > 0 ? total+' Kč' : 'Volno'}</small>`;
+                div.innerHTML = `<strong>${t.name}</strong><small>${t.items.length > 0 ? 'Obsazeno' : 'Volno'}</small>`;
                 div.onclick = () => openOrder(t);
                 grid.appendChild(div);
             });
             save();
         }
 
-        // --- NAVIGACE ---
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
             document.getElementById('screen-' + id).classList.remove('hidden');
@@ -165,146 +114,101 @@
             if(id === 'admin') renderAdminUI();
         }
 
-        // --- SKLAD A RECEPTURY ---
+        // --- EDITOR RECEPTUR ---
         function renderAdminUI() {
+            const selItem = document.getElementById('edit-recipe-item');
+            const selIng = document.getElementById('edit-ingredient-select');
             const listK = document.getElementById('list-kuchyn');
             const listB = document.getElementById('list-bar');
-            const select = document.getElementById('restock-target');
-            listK.innerHTML = ''; listB.innerHTML = ''; select.innerHTML = '';
 
-            const renderSub = (data, container) => {
-                for (let key in data) {
-                    const item = data[key];
-                    container.innerHTML += `<div class="data-row">
-                        <span>${key} ${item.isSub ? '<span class="sub-recipe-tag">POD</span>' : ''}</span>
-                        <b>${item.qty} ${item.unit}</b>
-                    </div>`;
-                    select.innerHTML += `<option value="${key}">${key}</option>`;
-                }
-            };
-            renderSub(warehouse.kuchyn, listK);
-            renderSub(warehouse.bar, listB);
+            selItem.innerHTML = menuItems.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+            
+            let allIngs = {...warehouse.kuchyn, ...warehouse.bar};
+            selIng.innerHTML = Object.keys(allIngs).map(name => `<option value="${name}">${name}</option>`).join('');
+            
+            listK.innerHTML = '<strong>👨‍🍳 KUCHYNĚ:</strong>' + Object.keys(warehouse.kuchyn).map(k => `<div class="data-row"><span>${k}</span><b>${warehouse.kuchyn[k].qty}</b></div>`).join('');
+            listB.innerHTML = '<strong>🍺 BAR:</strong>' + Object.keys(warehouse.bar).map(b => `<div class="data-row"><span>${b}</span><b>${warehouse.bar[b].qty}</b></div>`).join('');
+            
+            loadRecipeToEditor();
         }
 
-        function doRestock() {
-            const name = document.getElementById('restock-target').value;
-            const val = parseFloat(document.getElementById('restock-qty').value);
-            if(!val) return;
-            if(warehouse.kuchyn[name]) warehouse.kuchyn[name].qty += val;
-            else if(warehouse.bar[name]) warehouse.bar[name].qty += val;
-            alert('Naskladněno!');
-            renderAdminUI();
-            save();
-        }
-
-        // REKURZIVNÍ ODPIS (PODRECEPTURY)
-        function deduct(recipe) {
-            for (let name in recipe) {
-                let amount = recipe[name];
-                let item = warehouse.kuchyn[name] || warehouse.bar[name];
-                if (item) {
-                    item.qty -= amount;
-                    if (item.isSub && item.recipe) deduct(item.recipe);
+        function loadRecipeToEditor() {
+            const id = document.getElementById('edit-recipe-item').value;
+            const item = menuItems.find(m => m.id == id);
+            const display = document.getElementById('current-recipe-display');
+            display.innerHTML = "<strong>Aktuální receptura:</strong><br>";
+            if(!item.recipe || Object.keys(item.recipe).length === 0) {
+                display.innerHTML += "Žádné suroviny.";
+            } else {
+                for(let ing in item.recipe) {
+                    display.innerHTML += `<div class="data-row"><span>${ing}: ${item.recipe[ing]}</span><button onclick="removeIng('${ing}')" style="background:red; border:none; color:white; padding:2px 5px; border-radius:3px;">X</button></div>`;
                 }
             }
         }
 
-        // --- POKLADNA ---
+        function addIngredientToRecipe() {
+            const itemId = document.getElementById('edit-recipe-item').value;
+            const ingName = document.getElementById('edit-ingredient-select').value;
+            const qty = parseFloat(document.getElementById('edit-ingredient-qty').value);
+            
+            if(!qty) return alert("Zadejte množství!");
+            
+            const item = menuItems.find(m => m.id == itemId);
+            if(!item.recipe) item.recipe = {};
+            item.recipe[ingName] = qty;
+            
+            save();
+            loadRecipeToEditor();
+        }
+
+        function removeIng(ingName) {
+            const itemId = document.getElementById('edit-recipe-item').value;
+            const item = menuItems.find(m => m.id == itemId);
+            delete item.recipe[ingName];
+            save();
+            loadRecipeToEditor();
+        }
+
+        // --- POKLADNA & ODPIS ---
         function openOrder(t) {
             activeTable = t;
             showScreen('order');
             document.getElementById('table-title').innerText = t.name;
-            renderCategories();
-            renderMenu();
-            renderBill();
-        }
-
-        function renderCategories() {
-            const bar = document.getElementById('category-bar');
-            const cats = ["Vše", ...new Set(menuItems.map(i => i.cat))];
-            bar.innerHTML = cats.map(c => `<button class="cat-btn ${currentCat === c ? 'active' : ''}" onclick="setCat('${c}')">${c}</button>`).join('');
-        }
-
-        function setCat(c) { currentCat = c; renderMenu(); renderCategories(); }
-
-        function renderMenu() {
             const box = document.getElementById('menu-box');
-            const filtered = currentCat === "Vše" ? menuItems : menuItems.filter(i => i.cat === currentCat);
-            box.innerHTML = filtered.map(m => `<button class="btn" style="background:var(--card); border:1px solid #475569; margin:0; font-size:11px;" onclick="addItem(${m.id})">${m.name}<br>${m.price} Kč</button>`).join('');
+            box.innerHTML = menuItems.map(m => `<button class="btn" style="background:var(--card); border:1px solid #475569;" onclick="addItem(${m.id})">${m.name}<br>${m.price} Kč</button>`).join('');
+            renderBill();
         }
 
         function addItem(id) {
             const it = menuItems.find(x => x.id === id);
             activeTable.items.push({...it});
             renderBill();
-            save();
         }
 
         function renderBill() {
             const list = document.getElementById('bill-items');
-            const guest = customers.find(c => c.id === activeTable.guestId);
-            document.getElementById('current-guest').innerText = guest ? "👤 Host: " + guest.name + " (Sleva " + guest.discount + "%)" : "";
-            let subtotal = activeTable.items.reduce((s, i) => s + i.price, 0);
-            let discount = guest ? Math.round(subtotal * (guest.discount / 100)) : 0;
             list.innerHTML = activeTable.items.map(i => `<div class="data-row" style="color:black;"><span>${i.name}</span><b>${i.price} Kč</b></div>`).join('');
-            document.getElementById('discount-line').innerText = discount > 0 ? "- " + discount + " Kč (Sleva)" : "";
-            document.getElementById('bill-total').innerText = subtotal - discount;
         }
 
         function processPayment() {
             if(activeTable.items.length === 0) return;
-            let total = parseInt(document.getElementById('bill-total').innerText);
-            let guest = customers.find(c => c.id === activeTable.guestId);
-            
-            // Logování pro export
-            salesLog.push({
-                date: new Date().toLocaleDateString(),
-                time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
-                table: activeTable.name,
-                guest: guest ? guest.name : "Anonym",
-                price: total
+            activeTable.items.forEach(it => {
+                if(it.recipe) {
+                    for(let ing in it.recipe) {
+                        let target = warehouse.kuchyn[ing] || warehouse.bar[ing];
+                        if(target) target.qty -= it.recipe[ing];
+                    }
+                }
             });
-
-            activeTable.items.forEach(it => { if(it.recipe) deduct(it.recipe); });
-            if(guest) guest.spent += total;
-
             activeTable.items = [];
-            activeTable.guestId = null;
             save();
-            alert('Zaplaceno a odepsáno ze skladu!');
             showScreen('tables');
             init();
         }
 
-        // --- EXPORT ---
-        function exportToCSV() {
-            if(salesLog.length === 0) return alert("Žádná data k exportu.");
-            let csv = "Datum,Cas,Stul,Host,Castka\n";
-            salesLog.forEach(s => csv += `${s.date},${s.time},${s.table},${s.guest},${s.price}\n`);
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = `GastroExport_${new Date().toLocaleDateString()}.csv`;
-            link.click();
-        }
-
-        // --- POMOCNÉ MODALY ---
-        function openCustomerModal() { document.getElementById('modal-customer').classList.remove('hidden'); renderCustomerSelection(); }
-        function closeCustomerModal() { document.getElementById('modal-customer').classList.add('hidden'); }
-        function renderCustomerSelection() {
-            const div = document.getElementById('customer-select-list');
-            div.innerHTML = '<button class="btn btn-full" style="background:#eee; color:black;" onclick="assignGuest(null)">Bez hosta</button>';
-            customers.forEach(c => {
-                div.innerHTML += `<button class="btn btn-full" style="background:var(--warn); color:black;" onclick="assignGuest(${c.id})">${c.name} (${c.discount}%)</button>`;
-            });
-        }
-        function assignGuest(id) { activeTable.guestId = id; renderBill(); closeCustomerModal(); save(); }
-
         function save() {
-            localStorage.setItem('warehouse_v1', JSON.stringify(warehouse));
-            localStorage.setItem('g_customers', JSON.stringify(customers));
-            localStorage.setItem('g_tables', JSON.stringify(tables));
-            localStorage.setItem('g_sales_log', JSON.stringify(salesLog));
+            localStorage.setItem('g_warehouse_v2', JSON.stringify(warehouse));
+            localStorage.setItem('g_menu_v2', JSON.stringify(menuItems));
         }
 
         window.onload = init;
