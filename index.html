@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GASTRO PRO - Stock & Recipe Edition</title>
+    <title>GASTRO PRO 2026 - FULL SYSTEM</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root { --bg: #0f172a; --card: #1e293b; --accent: #3b82f6; --success: #22c55e; --warn: #f59e0b; --danger: #ef4444; --text: #f8fafc; }
         body { font-family: sans-serif; margin: 0; background: var(--bg); color: var(--text); user-select: none; }
@@ -20,6 +21,7 @@
 
         /* Položky a Účty */
         .bill-area { background: white; color: black; padding: 12px; border-radius: 10px; margin: 10px 0; max-height: 200px; overflow-y: auto; }
+        .item-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #eee; font-size: 14px; }
         .split-item { display: flex; justify-content: space-between; padding: 12px; margin-bottom: 5px; background: #f1f5f9; color: #000; border-radius: 8px; font-weight: bold; }
         .split-item.selected { background: var(--success); color: white; }
 
@@ -77,13 +79,11 @@
             <h2 id="dash-total" style="margin:0; color:var(--success);">0 Kč</h2>
             <p>Dnešní tržba</p>
         </div>
-
         <h3>📦 Aktuální stav skladu</h3>
         <table class="stock-table">
             <thead><tr><th>Surovina</th><th>Množství</th><th>Jedn.</th></tr></thead>
             <tbody id="stock-body"></tbody>
         </table>
-
         <button class="btn btn-back" onclick="showTables()">ZPĚT NA STOLY</button>
     </div>
 
@@ -99,7 +99,7 @@
 
     <div id="split-modal" class="modal hidden">
         <div class="modal-content">
-            <h3>Co se platí?</h3>
+            <h3>Vyberte položky k platbě</h3>
             <div id="split-list"></div>
             <hr>
             <div style="font-weight:bold; margin:10px 0;">K ÚHRADĚ: <span id="split-total">0</span> Kč</div>
@@ -109,39 +109,27 @@
     </div>
 
     <script>
-        // --- 1. DEFINICE SKLADU A RECEPTUR ---
+        // --- DATA A INICIALIZACE ---
+        const units = { "PIVO": "ml", "KOFOLA": "ml", "MASO": "g", "KNEDLIK": "ks", "KAVA": "g" };
+
+        // Reset skladu pokud je v paměti starý formát (undefined chyba)
+        if(localStorage.getItem('g_stock') && localStorage.getItem('g_stock').includes('"1":')) {
+            localStorage.removeItem('g_stock');
+        }
+
         let stock = JSON.parse(localStorage.getItem('g_stock')) || {
-            "pivo": 50000, // ml
-            "kofola": 30000, // ml
-            "maso": 10000, // g
-            "knedlik": 50, // ks
-            "kava": 2000 // g
+            "PIVO": 50000, "KOFOLA": 30000, "MASO": 10000, "KNEDLIK": 50, "KAVA": 2000
         };
 
         const menuItems = [
-            { id:1, name:"Pivo 12", price:55, recipe: { "pivo": 500 } },
-            { id:2, name:"Kofola", price:40, recipe: { "kofola": 500 } },
-            { id:3, name:"Svíčková", price:255, recipe: { "maso": 150, "knedlik": 4 } },
-            { id:4, name:"Guláš", price:185, recipe: { "maso": 150, "knedlik": 4 } },
-            { id:5, name:"Espresso", price:45, recipe: { "kava": 8 } }
+            { id:1, name:"Pivo 12", price:55, recipe: { "PIVO": 500 } },
+            { id:2, name:"Kofola", price:40, recipe: { "KOFOLA": 500 } },
+            { id:3, name:"Svíčková", price:255, recipe: { "MASO": 150, "KNEDLIK": 4 } },
+            { id:4, name:"Guláš", price:185, recipe: { "MASO": 150, "KNEDLIK": 4 } },
+            { id:5, name:"Espresso", price:45, recipe: { "KAVA": 8 } }
         ];
 
-        // --- OPRAVENÝ SKLAD ---
-// Tento řádek smaže stará špatná data, aby se tabulka správně načetla
-if(localStorage.getItem('g_stock') && localStorage.getItem('g_stock').includes('"1":')) {
-    localStorage.removeItem('g_stock'); 
-}
-
-let stock = JSON.parse(localStorage.getItem('g_stock')) || {
-    "pivo": 50000, 
-    "kofola": 30000, 
-    "maso": 10000, 
-    "knedlik": 50, 
-    "kava": 2000 
-};
-
-// ... zbytek menuItems a funkcí nechej stejný ...
-
+        let tables = JSON.parse(localStorage.getItem('g_tables')) || Array.from({length: 12}, (_, i) => ({
             id: i+1, name: "Stůl "+(i+1), items: [], status: 'free', res: null
         }));
         let logs = JSON.parse(localStorage.getItem('g_logs')) || [];
@@ -163,6 +151,7 @@ let stock = JSON.parse(localStorage.getItem('g_stock')) || {
             save();
         }
 
+        // --- POKLADNA ---
         function openOrder(t) {
             activeTable = t;
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
@@ -195,7 +184,7 @@ let stock = JSON.parse(localStorage.getItem('g_stock')) || {
             document.getElementById('bill-total').innerText = total;
         }
 
-        // --- 2. LOGIKA ODPISU ZE SKLADU ---
+        // --- SKLAD A PLATBY ---
         function deductFromStock(item) {
             if (item.recipe) {
                 for (let ingredient in item.recipe) {
@@ -220,6 +209,36 @@ let stock = JSON.parse(localStorage.getItem('g_stock')) || {
             showTables();
         }
 
+        function openSplitModal() {
+            if(activeTable.items.length === 0) return;
+            selectedForSplit = [];
+            document.getElementById('split-modal').classList.remove('hidden');
+            renderSplitList();
+        }
+
+        function renderSplitList() {
+            const list = document.getElementById('split-list');
+            list.innerHTML = activeTable.items.map((item, idx) => {
+                const isSelected = selectedForSplit.includes(idx);
+                return `<div class="split-item ${isSelected ? 'selected' : ''}" onclick="toggleSplitItem(${idx})">
+                    <span>${item.name}</span><span>${item.price} Kč</span>
+                </div>`;
+            }).join('');
+            calculateSplitTotal();
+        }
+
+        function toggleSplitItem(idx) {
+            if(selectedForSplit.includes(idx)) selectedForSplit = selectedForSplit.filter(i => i !== idx);
+            else selectedForSplit.push(idx);
+            renderSplitList();
+        }
+
+        function calculateSplitTotal() {
+            let total = 0;
+            selectedForSplit.forEach(idx => total += activeTable.items[idx].price);
+            document.getElementById('split-total').innerText = total;
+        }
+
         function confirmSplitPay() {
             if(selectedForSplit.length === 0) return;
             const remainingItems = [];
@@ -238,57 +257,25 @@ let stock = JSON.parse(localStorage.getItem('g_stock')) || {
             renderBill();
         }
 
-        // --- ADMIN & SKLAD ---
+        // --- ADMIN ---
         function showAdmin() {
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
             document.getElementById('screen-admin').classList.remove('hidden');
+            document.getElementById('dash-total').innerText = logs.reduce((s, l) => s + l.price, 0) + " Kč";
             
-            // Tržba
-            const total = logs.reduce((s, l) => s + l.price, 0);
-            document.getElementById('dash-total').innerText = total + " Kč";
-
-            // Skladová tabulka
             const stockBody = document.getElementById('stock-body');
             stockBody.innerHTML = '';
-            const units = { "pivo": "ml", "kofola": "ml", "maso": "g", "knedlik": "ks", "kava": "g" };
-            
             for (let item in stock) {
-                let isLow = stock[item] < 2000; // Varování pod 2 litry / 2 kila
+                let isLow = stock[item] < 2000;
                 stockBody.innerHTML += `<tr>
-                    <td>${item.toUpperCase()}</td>
+                    <td>${item}</td>
                     <td class="${isLow ? 'low-stock' : ''}">${stock[item]}</td>
-                    <td>${units[item]}</td>
+                    <td>${units[item] || 'ks'}</td>
                 </tr>`;
             }
         }
 
-        // --- UNIVERZÁLNÍ POMOCNÉ FUNKCE (Rezervace, Modaly atd. - beze změny) ---
-        function openSplitModal() {
-            if(activeTable.items.length === 0) return;
-            selectedForSplit = [];
-            document.getElementById('split-modal').classList.remove('hidden');
-            renderSplitList();
-        }
-        function renderSplitList() {
-            const list = document.getElementById('split-list');
-            list.innerHTML = activeTable.items.map((item, idx) => {
-                const isSelected = selectedForSplit.includes(idx);
-                return `<div class="split-item ${isSelected ? 'selected' : ''}" onclick="toggleSplitItem(${idx})">
-                    <span>${item.name}</span><span>${item.price} Kč</span>
-                </div>`;
-            }).join('');
-            calculateSplitTotal();
-        }
-        function toggleSplitItem(idx) {
-            if(selectedForSplit.includes(idx)) selectedForSplit = selectedForSplit.filter(i => i !== idx);
-            else selectedForSplit.push(idx);
-            renderSplitList();
-        }
-        function calculateSplitTotal() {
-            let total = 0;
-            selectedForSplit.forEach(idx => total += activeTable.items[idx].price);
-            document.getElementById('split-total').innerText = total;
-        }
+        // --- POMOCNÉ ---
         function openResModal() { document.getElementById('res-modal').classList.remove('hidden'); }
         function saveReservation() {
             const time = document.getElementById('res-time').value;
