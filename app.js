@@ -12,7 +12,7 @@ let tables = JSON.parse(localStorage.getItem('g_tables')) || Array.from({length:
 let logs = JSON.parse(localStorage.getItem('g_logs')) || [];
 let activeTable = null;
 
-// --- 2. FUNKCE ---
+// --- 2. ZÁKLADNÍ FUNKCE ---
 function save() {
     localStorage.setItem('g_raw', JSON.stringify(rawMaterials));
     localStorage.setItem('g_stock', JSON.stringify(stockLevels));
@@ -35,9 +35,10 @@ function init() {
     });
 }
 
+// --- 3. POKLADNA ---
 function openTable(t) {
     activeTable = t;
-    document.getElementById('screen-tables').classList.add('hidden');
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     document.getElementById('screen-order').classList.remove('hidden');
     document.getElementById('active-table-title').innerText = t.name;
     renderMenu();
@@ -48,12 +49,6 @@ function showTables() {
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     document.getElementById('screen-tables').classList.remove('hidden');
     init();
-}
-
-function showAdmin() {
-    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-    document.getElementById('screen-admin').classList.remove('hidden');
-    renderInventoryEditor();
 }
 
 function renderMenu() {
@@ -79,7 +74,7 @@ function renderBill() {
 }
 
 function payWithPrint() {
-    if (!activeTable.items.length) return;
+    if (!activeTable || !activeTable.items.length) return;
     activeTable.items.forEach(item => {
         logs.push({ date: new Date().toISOString(), name: item.name, price: item.price });
     });
@@ -89,10 +84,53 @@ function payWithPrint() {
     showTables();
 }
 
-function renderInventoryEditor() {
-    const container = document.getElementById('admin-content');
-    container.innerHTML = `<h3>Sklad</h3>` + rawMaterials.map(rm => `<div>${rm.name}: ${stockLevels[rm.id] || 0}</div>`).join('');
+// --- 4. ADMIN SEKCE (OPRAVENO) ---
+function showAdmin() {
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    document.getElementById('screen-admin').classList.remove('hidden');
+    renderDashboard(); // Defaultně ukáže Dashboard
 }
 
-// DŮLEŽITÉ: Spuštění hned po načtení
+function renderDashboard() {
+    const container = document.getElementById('admin-content');
+    const total = logs.reduce((a, b) => a + b.price, 0);
+    container.innerHTML = `
+        <div style="padding:20px; background:#1e293b; border-radius:10px; margin-top:10px;">
+            <h3>Dnešní přehled</h3>
+            <p>Celková tržba: <b style="color:#22c55e;">${total} Kč</b></p>
+            <p>Počet objednávek: <b>${logs.length}</b></p>
+        </div>
+    `;
+}
+
+function renderInventoryEditor() {
+    const container = document.getElementById('admin-content');
+    container.innerHTML = `
+        <h3>Skladové zásoby</h3>
+        <div class="admin-panel">
+            ${rawMaterials.map(rm => `
+                <div class="bill-row" style="border-bottom:1px solid #334155; padding:10px 0;">
+                    <span>${rm.name}</span>
+                    <b>${stockLevels[rm.id] || 0} ${rm.unit}</b>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function renderRecipeEditor() {
+    const container = document.getElementById('admin-content');
+    container.innerHTML = `
+        <h3>Seznam receptur</h3>
+        <div class="admin-panel">
+            ${recipes.map(r => `
+                <div class="bill-row" style="border-bottom:1px solid #334155; padding:10px 0;">
+                    <span>${r.name}</span>
+                    <b>${r.price} Kč</b>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
 window.onload = init;
