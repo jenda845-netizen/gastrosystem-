@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GASTRO PRO 2026 - KDS & BON EDITION</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <title>GASTRO PRO 2026 - ADVANCED STOCK</title>
     <style>
         :root { --bg: #0f172a; --card: #1e293b; --accent: #3b82f6; --success: #22c55e; --warn: #f59e0b; --danger: #ef4444; --text: #f8fafc; }
-        body { font-family: sans-serif; margin: 0; background: var(--bg); color: var(--text); user-select: none; }
+        body { font-family: sans-serif; margin: 0; background: var(--bg); color: var(--text); user-select: none; overflow-x: hidden; }
         header { background: var(--card); padding: 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #334155; position: sticky; top: 0; z-index: 50; }
         .screen { padding: 15px; }
         .hidden { display: none !important; }
@@ -16,47 +15,30 @@
         #tables-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
         .table-box { height: 95px; background: var(--card); border-radius: 12px; border: 2px solid #475569; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
         .table-box.occupied { border-color: var(--danger); background: #450a0a; }
-        .table-box.reserved { border-color: var(--warn); background: #422006; }
-        .table-box small { font-size: 10px; margin-top: 5px; opacity: 0.8; }
 
-        /* KDS - Kuchyňský displej */
-        .kds-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-        .kds-card { background: var(--card); border-left: 5px solid var(--accent); padding: 15px; border-radius: 8px; position: relative; }
-        .kds-card.late { border-left-color: var(--danger); animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-        .kds-time { position: absolute; top: 10px; right: 10px; font-size: 12px; font-weight: bold; }
+        /* Skladové karty */
+        .stock-section { background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #334155; }
+        .stock-section h3 { margin-top: 0; color: var(--accent); border-bottom: 1px solid #334155; padding-bottom: 5px; }
+        .stock-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .stock-table td { padding: 8px; border-bottom: 1px solid #1e293b; }
+        .sub-badge { background: #6366f1; font-size: 10px; padding: 2px 5px; border-radius: 4px; }
 
-        /* Položky a Účty */
-        .bill-area { background: white; color: black; padding: 12px; border-radius: 10px; margin: 10px 0; max-height: 200px; overflow-y: auto; }
-        .item-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #eee; font-size: 14px; }
-
-        /* Menu */
-        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
-        .m-item { background: var(--card); color: white; border: none; padding: 15px; border-radius: 10px; font-size: 13px; font-weight: bold; }
-
-        /* Tlačítka */
-        .btn { padding: 15px; border: none; border-radius: 10px; font-weight: bold; color: white; width: 100%; margin-top: 10px; font-size: 14px; }
+        /* Tlačítka a Menu */
+        .btn { padding: 15px; border: none; border-radius: 10px; font-weight: bold; color: white; width: 100%; margin-top: 10px; cursor: pointer; }
         .btn-pay { background: var(--success); }
-        .btn-bon { background: var(--warn); }
         .btn-back { background: #475569; }
-        .btn-done { background: var(--success); padding: 8px; font-size: 12px; margin-top: 10px; }
+        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
+        .m-item { background: var(--card); color: white; border: 1px solid #475569; padding: 15px; border-radius: 10px; font-weight: bold; }
         
-        /* Dashboard & Sklad */
-        .stock-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
-        .stock-table td, .stock-table th { padding: 10px; border-bottom: 1px solid #334155; text-align: left; }
-
-        /* Modaly */
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 100; }
-        .modal-content { background: white; color: black; padding: 20px; border-radius: 20px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .bill-area { background: white; color: black; padding: 12px; border-radius: 10px; margin: 10px 0; }
     </style>
 </head>
 <body>
 
     <header>
-        <h1 onclick="location.reload()">GASTRO PRO 2026</h1>
+        <h1 onclick="location.reload()">GASTRO PRO</h1>
         <div style="display:flex; gap:5px;">
-            <button onclick="showKDS()" style="background:var(--accent); color:white; border:none; padding:8px; border-radius:8px;">👨‍🍳 KUCHYŇ</button>
-            <button onclick="showAdmin()" style="background:#475569; color:white; border:none; padding:8px; border-radius:8px;">📊 DASH</button>
+            <button onclick="showAdmin()" style="background:#475569; color:white; border:none; padding:8px 12px; border-radius:8px;">📦 SKLAD</button>
         </div>
     </header>
 
@@ -65,7 +47,7 @@
     </div>
 
     <div id="screen-order" class="screen hidden">
-        <h2 id="active-table-name" style="margin-top:0;">Stůl</h2>
+        <h2 id="active-table-name">Stůl</h2>
         <div class="menu-grid" id="menu-box"></div>
         <div class="bill-area">
             <div id="bill-items"></div>
@@ -73,48 +55,55 @@
                 CELKEM: <span id="bill-total">0</span> Kč
             </div>
         </div>
-        <button class="btn btn-bon" onclick="sendToKitchen()">POSLAT DO KUCHYNĚ 👨‍🍳</button>
-        <button class="btn btn-pay" onclick="payFull()">ZAPLATIT VŠE ✅</button>
+        <button class="btn btn-pay" onclick="payFull()">ZAPLATIT A ODSEKAT SKLAD ✅</button>
         <button class="btn btn-back" onclick="showTables()">ZPĚT</button>
-    </div>
-
-    <div id="screen-kds" class="screen hidden">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h2>Kuchyň & Bar</h2>
-            <button onclick="showTables()" class="btn-back" style="padding:5px 15px; width:auto;">ZAVŘÍT</button>
-        </div>
-        <div id="kds-list" class="kds-grid"></div>
     </div>
 
     <div id="screen-admin" class="screen hidden">
-        <div id="dash-info" style="background:var(--card); padding:15px; border-radius:12px; text-align:center;">
-            <h2 id="dash-total" style="color:var(--success); margin:0;">0 Kč</h2>
-            <p>Dnešní tržba</p>
+        <h2>Správa skladu a Receptur</h2>
+        
+        <div id="stock-kuchyn" class="stock-section">
+            <h3>👨‍🍳 Kuchyň (Suroviny & Podreceptury)</h3>
+            <table class="stock-table"><tbody id="body-kuchyn"></tbody></table>
         </div>
-        <h3>📦 Sklad</h3>
-        <table class="stock-table"><tbody id="stock-body"></tbody></table>
-        <button class="btn btn-back" onclick="showTables()">ZPĚT</button>
+
+        <div id="stock-bar" class="stock-section">
+            <h3>🍺 Bar (Nápoje & Ingredience)</h3>
+            <table class="stock-table"><tbody id="body-bar"></tbody></table>
+        </div>
+
+        <button class="btn btn-back" onclick="showTables()">ZPĚT NA STOLY</button>
     </div>
 
     <script>
-        // --- DATA ---
-        let stock = JSON.parse(localStorage.getItem('g_stock')) || {
-            "PIVO": 50000, "KOFOLA": 30000, "MASO": 10000, "KNEDLIK": 50, "KAVA": 2000
+        // --- DATA SKLADU (Rozděleno) ---
+        let stock = JSON.parse(localStorage.getItem('g_stock_v2')) || {
+            kuchyn: {
+                "Hovězí maso": { qty: 10000, unit: "g" },
+                "Mouka": { qty: 20000, unit: "g" },
+                "Vejce": { qty: 100, unit: "ks" },
+                "Mléko": { qty: 10000, unit: "ml" },
+                "Knedlík (polotovar)": { qty: 20, unit: "ks", isSub: true, recipe: { "Mouka": 200, "Vejce": 0.5, "Mléko": 100 } }
+            },
+            bar: {
+                "Pivo Sud": { qty: 50000, unit: "ml" },
+                "Kofola Sud": { qty: 30000, unit: "ml" },
+                "Káva zrnková": { qty: 2000, unit: "g" },
+                "Rum": { qty: 5000, unit: "ml" }
+            }
         };
 
+        // --- MENU S RECEPTUROU A PODRECEPTUROU ---
         const menuItems = [
-            { id:1, name:"Pivo 12", price:55, cat:"BAR", recipe: { "PIVO": 500 } },
-            { id:2, name:"Kofola", price:40, cat:"BAR", recipe: { "KOFOLA": 500 } },
-            { id:3, name:"Svíčková", price:255, cat:"KUCHYN", recipe: { "MASO": 150, "KNEDLIK": 4 } },
-            { id:4, name:"Guláš", price:185, cat:"KUCHYN", recipe: { "MASO": 150, "KNEDLIK": 4 } },
-            { id:5, name:"Espresso", price:45, cat:"BAR", recipe: { "KAVA": 8 } }
+            { id:1, name:"Pivo 12", price:55, cat:"bar", recipe: { "Pivo Sud": 500 } },
+            { id:2, name:"Espresso", price:45, cat:"bar", recipe: { "Káva zrnková": 8 } },
+            { id:3, name:"Svíčková", price:265, cat:"kuchyn", recipe: { "Hovězí maso": 150, "Knedlík (polotovar)": 4 } },
+            { id:4, name:"Grog", price:65, cat:"bar", recipe: { "Rum": 40 } }
         ];
 
-        let tables = JSON.parse(localStorage.getItem('g_tables')) || Array.from({length: 12}, (_, i) => ({
+        let tables = JSON.parse(localStorage.getItem('g_tables')) || Array.from({length: 9}, (_, i) => ({
             id: i+1, name: "Stůl "+(i+1), items: [], status: 'free'
         }));
-        
-        let kdsOrders = JSON.parse(localStorage.getItem('g_kds')) || [];
         let logs = JSON.parse(localStorage.getItem('g_logs')) || [];
         let activeTable = null;
 
@@ -123,7 +112,7 @@
             grid.innerHTML = '';
             tables.forEach(t => {
                 const div = document.createElement('div');
-                div.className = `table-box ${t.status}`;
+                div.className = `table-box ${t.items.length > 0 ? 'occupied' : ''}`;
                 let total = t.items.reduce((s, i) => s + i.price, 0);
                 div.innerHTML = `<strong>${t.name}</strong><small>${total > 0 ? total+" Kč" : "Volno"}</small>`;
                 div.onclick = () => openOrder(t);
@@ -148,8 +137,7 @@
 
         function addItem(id) {
             const item = menuItems.find(x => x.id === id);
-            activeTable.items.push({...item, sent: false});
-            activeTable.status = 'occupied';
+            activeTable.items.push({...item});
             renderBill();
             save();
         }
@@ -159,92 +147,61 @@
             let total = 0;
             list.innerHTML = activeTable.items.map(i => {
                 total += i.price;
-                return `<div class="item-row" style="opacity:${i.sent ? 0.5 : 1}">
-                    <span>${i.sent ? '✓ ' : ''}${i.name}</span>
-                    <b>${i.price} Kč</b>
-                </div>`;
+                return `<div style="display:flex; justify-content:space-between; color:black; padding:5px 0; border-bottom:1px solid #eee;"><span>${i.name}</span><b>${i.price} Kč</b></div>`;
             }).join('');
             document.getElementById('bill-total').innerText = total;
         }
 
-        // --- BONOVÁNÍ & KDS ---
-        function sendToKitchen() {
-            const unsentItems = activeTable.items.filter(i => !i.sent);
-            if(unsentItems.length === 0) return alert("Vše již bylo posláno.");
-
-            const orderId = Date.now();
-            kdsOrders.push({
-                id: orderId,
-                table: activeTable.name,
-                time: new Date().toISOString(),
-                items: unsentItems.map(i => ({ name: i.name, cat: i.cat })),
-                status: 'pending'
-            });
-
-            activeTable.items.forEach(i => i.sent = true);
-            alert("BON odeslán!");
-            save();
-            renderBill();
-        }
-
-        function showKDS() {
-            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-            document.getElementById('screen-kds').classList.remove('hidden');
-            renderKDS();
-        }
-
-        function renderKDS() {
-            const list = document.getElementById('kds-list');
-            list.innerHTML = '';
-            
-            kdsOrders.forEach((order, idx) => {
-                const waitTime = Math.floor((new Date() - new Date(order.time)) / 60000);
-                const isLate = waitTime > 10;
+        // --- HLAVNÍ LOGIKA ODPISU (Včetně podreceptur) ---
+        function deductFromStock(recipe, section) {
+            for (let ingredient in recipe) {
+                let amountToDeduct = recipe[ingredient];
                 
-                const card = document.createElement('div');
-                card.className = `kds-card ${isLate ? 'late' : ''}`;
-                card.innerHTML = `
-                    <div class="kds-time">${waitTime} min</div>
-                    <strong>${order.table}</strong><hr>
-                    ${order.items.map(i => `<div>• ${i.name} <small>(${i.cat})</small></div>`).join('')}
-                    <button class="btn btn-done" onclick="finishOrder(${idx})">HOTOVO / VYDÁNO</button>
-                `;
-                list.appendChild(card);
-            });
-        }
+                // Najdeme kde surovina leží
+                let targetSection = stock.kuchyn[ingredient] ? "kuchyn" : "bar";
+                let item = stock[targetSection][ingredient];
 
-        function finishOrder(idx) {
-            kdsOrders.splice(idx, 1);
-            save();
-            renderKDS();
-        }
-
-        // --- PLATBA & ADMIN ---
-        function payFull() {
-            const total = activeTable.items.reduce((s, i) => s + i.price, 0);
-            if(total > 0) {
-                activeTable.items.forEach(item => {
-                    if (item.recipe) {
-                        for (let ing in item.recipe) stock[ing] -= item.recipe[ing];
+                if (item) {
+                    item.qty -= amountToDeduct;
+                    // Pokud je to podreceptura, odepíšeme její složení
+                    if (item.isSub && item.recipe) {
+                        deductFromStock(item.recipe, targetSection);
                     }
-                    logs.push({ price: item.price, date: new Date().toISOString() });
-                });
+                }
             }
+        }
+
+        function payFull() {
+            activeTable.items.forEach(item => {
+                if (item.recipe) {
+                    deductFromStock(item.recipe);
+                }
+                logs.push({ price: item.price, date: new Date().toISOString() });
+            });
             activeTable.items = [];
-            activeTable.status = 'free';
-            save();
             showTables();
         }
 
+        // --- ADMIN SKLAD RENDER ---
         function showAdmin() {
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
             document.getElementById('screen-admin').classList.remove('hidden');
-            document.getElementById('dash-total').innerText = logs.reduce((s, l) => s + l.price, 0) + " Kč";
-            const body = document.getElementById('stock-body');
-            body.innerHTML = '';
-            for (let item in stock) {
-                body.innerHTML += `<tr><td>${item}</td><td>${stock[item]}</td></tr>`;
-            }
+            
+            const renderSection = (data, elementId) => {
+                const body = document.getElementById(elementId);
+                body.innerHTML = '';
+                for (let key in data) {
+                    const it = data[key];
+                    body.innerHTML += `<tr>
+                        <td>${key} ${it.isSub ? '<span class="sub-badge">POD-REC</span>' : ''}</td>
+                        <td style="text-align:right; font-weight:bold; color:${it.qty < 500 ? 'red' : 'inherit'}">${it.qty}</td>
+                        <td>${it.unit}</td>
+                    </tr>`;
+                }
+            };
+
+            renderSection(stock.kuchyn, "body-kuchyn");
+            renderSection(stock.bar, "body-bar");
         }
 
         function showTables() {
@@ -256,11 +213,9 @@
         function save() {
             localStorage.setItem('g_tables', JSON.stringify(tables));
             localStorage.setItem('g_logs', JSON.stringify(logs));
-            localStorage.setItem('g_stock', JSON.stringify(stock));
-            localStorage.setItem('g_kds', JSON.stringify(kdsOrders));
+            localStorage.setItem('g_stock_v2', JSON.stringify(stock));
         }
 
-        setInterval(renderKDS, 30000); // Obnovit čas na KDS každých 30s
         window.onload = init;
     </script>
 </body>
