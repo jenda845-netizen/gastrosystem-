@@ -1,22 +1,13 @@
-// --- 1. DATA ---
-let rawMaterials = JSON.parse(localStorage.getItem('g_raw')) || [
-    { id: 1, name: "Pivo Sud 12", section: "bar", unit: "ml" }
-];
-let stockLevels = JSON.parse(localStorage.getItem('g_stock')) || { "1": 50000 };
 let recipes = JSON.parse(localStorage.getItem('g_recipes')) || [
-    { id: 202, name: "Pivo 12", type: "dish", cat: "pivo", price: 55, ingredients: [{ type: "raw", id: 1, amount: 500 }] }
+    { id: 202, name: "Pivo 12", price: 55 }
 ];
 let tables = JSON.parse(localStorage.getItem('g_tables')) || Array.from({length: 8}, (_, i) => ({
-    id: i + 1, name: `Stul ${i + 1}`, items: [], status: 'free'
+    id: i + 1, name: "Stul " + (i + 1), items: [], status: 'free'
 }));
 let logs = JSON.parse(localStorage.getItem('g_logs')) || [];
 let activeTable = null;
 
-// --- 2. ZÁKLADNÍ FUNKCE ---
 function save() {
-    localStorage.setItem('g_raw', JSON.stringify(rawMaterials));
-    localStorage.setItem('g_stock', JSON.stringify(stockLevels));
-    localStorage.setItem('g_recipes', JSON.stringify(recipes));
     localStorage.setItem('g_tables', JSON.stringify(tables));
     localStorage.setItem('g_logs', JSON.stringify(logs));
 }
@@ -27,15 +18,15 @@ function init() {
     grid.innerHTML = '';
     tables.forEach(t => {
         const div = document.createElement('div');
-        div.className = `table ${t.status}`;
-        let sum = t.items.reduce((a, b) => a + b.price, 0);
-        div.innerHTML = `<b>${t.name}</b><br>${sum > 0 ? sum + ' Kc' : 'Volno'}`;
-        div.onclick = () => openTable(t);
+        div.className = "table " + t.status;
+        let sum = 0;
+        t.items.forEach(i => sum += i.price);
+        div.innerHTML = "<b>" + t.name + "</b><br>" + (sum > 0 ? sum + " Kc" : "Volno");
+        div.onclick = function() { openTable(t); };
         grid.appendChild(div);
     });
 }
 
-// --- 3. POKLADNA ---
 function openTable(t) {
     activeTable = t;
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
@@ -45,17 +36,16 @@ function openTable(t) {
     renderBill();
 }
 
-function showTables() {
-    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-    document.getElementById('screen-tables').classList.remove('hidden');
-    init();
-}
-
 function renderMenu() {
     const container = document.getElementById('menu-items');
-    container.innerHTML = recipes.filter(r => r.type === 'dish').map(r => `
-        <button class="menu-item" onclick="addItem(${r.id})">${r.name}<br>${r.price} Kc</button>
-    `).join('');
+    container.innerHTML = '';
+    recipes.forEach(r => {
+        const btn = document.createElement('button');
+        btn.className = "menu-item";
+        btn.innerHTML = r.name + "<br>" + r.price + " Kc";
+        btn.onclick = function() { addItem(r.id); };
+        container.appendChild(btn);
+    });
 }
 
 function addItem(id) {
@@ -68,13 +58,16 @@ function addItem(id) {
 
 function renderBill() {
     const list = document.getElementById('bill-list');
-    let total = activeTable.items.reduce((a, b) => a + b.price, 0);
-    list.innerHTML = activeTable.items.map(i => `<div class="bill-row"><span>${i.name}</span><b>${i.price} Kc</b></div>`).join('');
+    let total = 0;
+    list.innerHTML = '';
+    activeTable.items.forEach(i => {
+        total += i.price;
+        list.innerHTML += "<div>" + i.name + " - " + i.price + " Kc</div>";
+    });
     document.getElementById('bill-total').innerText = total;
 }
 
 function payWithPrint() {
-    if (!activeTable || !activeTable.items.length) return;
     activeTable.items.forEach(item => {
         logs.push({ date: new Date().toISOString(), name: item.name, price: item.price });
     });
@@ -84,53 +77,32 @@ function payWithPrint() {
     showTables();
 }
 
-// --- 4. ADMIN SEKCE (OPRAVENO) ---
+function showTables() {
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    document.getElementById('screen-tables').classList.remove('hidden');
+    init();
+}
+
 function showAdmin() {
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     document.getElementById('screen-admin').classList.remove('hidden');
-    renderDashboard(); // Defaultně ukáže Dashboard
+    renderDashboard();
 }
 
 function renderDashboard() {
-    const container = document.getElementById('admin-content');
-    const total = logs.reduce((a, b) => a + b.price, 0);
-    container.innerHTML = `
-        <div style="padding:20px; background:#1e293b; border-radius:10px; margin-top:10px;">
-            <h3>Dnešní přehled</h3>
-            <p>Celková tržba: <b style="color:#22c55e;">${total} Kč</b></p>
-            <p>Počet objednávek: <b>${logs.length}</b></p>
-        </div>
-    `;
+    const cont = document.getElementById('admin-content');
+    let total = 0;
+    logs.forEach(l => total += l.price);
+    cont.innerHTML = "<h3>Trzba: " + total + " Kc</h3><p>Objednavek: " + logs.length + "</p>";
 }
 
 function renderInventoryEditor() {
-    const container = document.getElementById('admin-content');
-    container.innerHTML = `
-        <h3>Skladové zásoby</h3>
-        <div class="admin-panel">
-            ${rawMaterials.map(rm => `
-                <div class="bill-row" style="border-bottom:1px solid #334155; padding:10px 0;">
-                    <span>${rm.name}</span>
-                    <b>${stockLevels[rm.id] || 0} ${rm.unit}</b>
-                </div>
-            `).join('')}
-        </div>
-    `;
+    document.getElementById('admin-content').innerHTML = "<h3>Sklad je v teto verzi automaticky.</h3>";
 }
 
 function renderRecipeEditor() {
-    const container = document.getElementById('admin-content');
-    container.innerHTML = `
-        <h3>Seznam receptur</h3>
-        <div class="admin-panel">
-            ${recipes.map(r => `
-                <div class="bill-row" style="border-bottom:1px solid #334155; padding:10px 0;">
-                    <span>${r.name}</span>
-                    <b>${r.price} Kč</b>
-                </div>
-            `).join('')}
-        </div>
-    `;
+    document.getElementById('admin-content').innerHTML = "<h3>Recepty lze upravit v kodu app.js.</h3>";
 }
 
 window.onload = init;
+
