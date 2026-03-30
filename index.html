@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GASTRO ERP PRO 2026 - ULTIMATE</title>
+    <title>GASTRO ERP PRO 2026 - ULTIMATE WAREHOUSE</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root { --bg: #0f172a; --card: #1e293b; --accent: #3b82f6; --success: #22c55e; --warn: #f59e0b; --danger: #ef4444; --text: #f8fafc; }
@@ -14,7 +14,7 @@
         
         /* Navigace */
         .nav-bar { position: fixed; bottom: 0; width: 100%; background: var(--card); display: flex; justify-content: space-around; padding: 10px 0; border-top: 2px solid #334155; z-index: 100; }
-        .nav-item { color: white; text-decoration: none; font-size: 11px; text-align: center; opacity: 0.5; }
+        .nav-item { color: white; text-decoration: none; font-size: 11px; text-align: center; opacity: 0.5; cursor: pointer; }
         .nav-item.active { opacity: 1; color: var(--accent); font-weight: bold; }
 
         /* Mapa stolů */
@@ -22,14 +22,10 @@
         .table-box { height: 85px; background: var(--card); border-radius: 12px; border: 1px solid #475569; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
         .table-box.occupied { border-color: var(--danger); background: #450a0a; }
 
-        /* Menu & Kategorie */
-        .cat-bar { display: flex; gap: 5px; overflow-x: auto; margin-bottom: 10px; padding-bottom: 5px; }
-        .cat-btn { background: #334155; border: 1px solid #475569; color: white; padding: 8px 15px; border-radius: 20px; font-size: 12px; white-space: nowrap; }
-        .cat-btn.active { background: var(--accent); border-color: var(--accent); }
-
-        /* Sklad & Hosté */
+        /* Skladové sekce */
         .admin-section { background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 15px; border-left: 4px solid var(--accent); }
-        .data-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #334155; font-size: 14px; }
+        .data-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #334155; font-size: 13px; }
+        .sub-recipe-tag { font-size: 10px; color: var(--warn); border: 1px solid var(--warn); padding: 1px 4px; border-radius: 4px; margin-left: 5px; }
 
         /* UI Prvky */
         .btn { padding: 15px; border: none; border-radius: 10px; font-weight: bold; color: white; cursor: pointer; }
@@ -37,14 +33,16 @@
         input, select { background: #334155; border: 1px solid #475569; color: white; padding: 12px; border-radius: 8px; margin-bottom: 5px; width: 100%; box-sizing: border-box; }
         
         .bill-area { background: white; color: black; padding: 12px; border-radius: 10px; margin: 10px 0; }
-        .vip-badge { background: gold; color: black; font-size: 10px; padding: 2px 5px; border-radius: 4px; font-weight: bold; }
+        .cat-bar { display: flex; gap: 5px; overflow-x: auto; margin-bottom: 10px; padding-bottom: 5px; }
+        .cat-btn { background: #334155; border: 1px solid #475569; color: white; padding: 8px 15px; border-radius: 20px; font-size: 11px; white-space: nowrap; }
+        .cat-btn.active { background: var(--accent); border-color: var(--accent); }
     </style>
 </head>
 <body>
 
     <header>
-        <h1 style="font-size: 18px;">GASTRO ERP PRO</h1>
-        <div id="status">👤 <span id="active-user">Admin</span></div>
+        <h1 style="font-size: 16px;">GASTRO ERP PRO 2026</h1>
+        <div id="status" style="font-size:12px; color:var(--success);">● SYSTÉM AKTIVNÍ</div>
     </header>
 
     <div id="screen-tables" class="screen">
@@ -54,46 +52,50 @@
     <div id="screen-order" class="screen hidden">
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h2 id="table-title" style="margin:0;">Stůl</h2>
-            <button onclick="openCustomerModal()" style="background:var(--warn); border:none; padding:5px 10px; border-radius:5px; color:black; font-weight:bold; font-size:12px;">👤 HOST</button>
+            <button onclick="openCustomerModal()" style="background:var(--warn); border:none; padding:5px 10px; border-radius:5px; color:black; font-weight:bold; font-size:11px;">👤 HOST</button>
         </div>
+        <div id="current-guest" style="font-size:11px; color:var(--warn); margin-top:4px;"></div>
         
-        <div id="current-guest" style="font-size:12px; color:var(--warn); margin-top:5px;"></div>
-
         <div class="cat-bar" id="category-bar"></div>
         <div id="menu-box" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;"></div>
-
+        
         <div class="bill-area">
             <div id="bill-items"></div>
-            <div id="discount-line" style="color:var(--danger); font-size:12px; text-align:right; font-weight:bold;"></div>
-            <div style="text-align:right; font-weight:bold; border-top:1px solid #eee; margin-top:10px; padding-top:5px;">CELKEM: <span id="bill-total">0</span> Kč</div>
+            <div id="discount-line" style="color:var(--danger); font-size:11px; text-align:right; font-weight:bold;"></div>
+            <div style="text-align:right; font-weight:bold; border-top:1px solid #eee; margin-top:8px; padding-top:4px;">CELKEM: <span id="bill-total">0</span> Kč</div>
         </div>
-
-        <button class="btn btn-full" style="background:var(--success);" onclick="processPayment()">ZAPLATIT ✅</button>
+        
+        <button class="btn btn-full" style="background:var(--success);" onclick="processPayment()">ZAPLATIT A ODESLAT ✅</button>
         <button class="btn btn-full" style="background:#475569;" onclick="showScreen('tables')">ZPĚT</button>
     </div>
 
     <div id="screen-admin" class="screen hidden">
+        <div class="admin-section" style="border-left-color: var(--success);">
+            <h3>📊 Exporty & Data</h3>
+            <button class="btn btn-full" style="background:var(--accent); padding:10px;" onclick="exportToCSV()">📥 STÁHNOUT TRŽBY (CSV)</button>
+        </div>
+
         <div class="admin-section">
-            <h3>📥 Příjem zboží</h3>
+            <h3>📥 Příjem zboží (Naskladnění)</h3>
             <select id="restock-target"></select>
-            <input type="number" id="restock-qty" placeholder="Množství">
-            <button class="btn btn-full" style="background:var(--accent); padding:10px;" onclick="doRestock()">NASKLADNIT</button>
+            <input type="number" id="restock-qty" placeholder="Množství k přičtení">
+            <button class="btn btn-full" style="background:var(--accent); padding:10px;" onclick="doRestock()">POTVRDIT PŘÍJEM</button>
         </div>
 
         <div class="admin-section">
-            <h3>📦 Sklady</h3>
-            <div id="stock-list"></div>
+            <h3>👨‍🍳 Sklad Kuchyně</h3>
+            <div id="list-kuchyn"></div>
         </div>
 
-        <div class="admin-section" style="border-left-color: gold;">
-            <h3>🏆 Věrní hosté</h3>
-            <div id="customer-list"></div>
+        <div class="admin-section" style="border-left-color: var(--warn);">
+            <h3>🍺 Sklad Bar</h3>
+            <div id="list-bar"></div>
         </div>
     </div>
 
     <div id="modal-customer" class="modal hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:200; display:flex; align-items:center; justify-content:center;">
-        <div style="background:white; color:black; padding:20px; border-radius:15px; width:80%;">
-            <h3>Přiřadit hosta</h3>
+        <div style="background:white; color:black; padding:20px; border-radius:15px; width:85%;">
+            <h3>Přiřadit VIP hosta</h3>
             <div id="customer-select-list"></div>
             <button class="btn btn-full" style="background:#475569;" onclick="closeCustomerModal()">ZAVŘÍT</button>
         </div>
@@ -101,33 +103,42 @@
 
     <div class="nav-bar">
         <div class="nav-item active" onclick="showScreen('tables')" id="nav-tables">🪑<br>Stoly</div>
-        <div class="nav-item" onclick="showScreen('admin')" id="nav-admin">📊<br>Admin</div>
-        <div class="nav-item" onclick="alert('KDS v přípravě...')">👨‍🍳<br>KDS</div>
+        <div class="nav-item" onclick="showScreen('admin')" id="nav-admin">📦<br>Sklady</div>
+        <div class="nav-item" onclick="alert('KDS se připravuje...')">👨‍🍳<br>KDS</div>
     </div>
 
     <script>
-        // --- DATA ---
-        let stock = JSON.parse(localStorage.getItem('g_final_stock')) || {
-            kuchyn: { "Maso": {qty:5000, unit:"g"}, "Mouka": {qty:10000, unit:"g"}, "Knedlík (pol)": {qty:20, unit:"ks", isSub:true, recipe:{"Mouka":200}} },
-            bar: { "Pivo Sud": {qty:50000, unit:"ml"}, "Káva": {qty:2000, unit:"g"} }
+        // --- DATA SKLADŮ (Rozděleno) ---
+        let warehouse = JSON.parse(localStorage.getItem('g_warehouse_v1')) || {
+            kuchyn: {
+                "Hovězí maso": { qty: 5000, unit: "g" },
+                "Mouka": { qty: 10000, unit: "g" },
+                "Vejce": { qty: 60, unit: "ks" },
+                "Knedlík": { qty: 10, unit: "ks", isSub: true, recipe: {"Mouka": 200, "Vejce": 0.5} }
+            },
+            bar: {
+                "Pivo Sud": { qty: 50000, unit: "ml" },
+                "Káva zrnková": { qty: 2000, unit: "g" },
+                "Mléko čerstvé": { qty: 10000, unit: "ml" }
+            }
         };
 
         const menuItems = [
-            { id:1, name:"Pivo 12", price:55, cat:"Pivo", recipe:{"Pivo Sud": 500} },
-            { id:2, name:"Espresso", price:45, cat:"Káva", recipe:{"Káva": 8} },
-            { id:3, name:"Svíčková", price:265, cat:"Jídlo", recipe:{"Maso": 150, "Knedlík (pol)": 4} },
-            { id:4, name:"Guláš", price:195, cat:"Jídlo", recipe:{"Maso": 150, "Knedlík (pol)": 4} }
+            { id: 1, name: "Pivo 12°", price: 55, cat: "Bar", recipe: {"Pivo Sud": 500} },
+            { id: 2, name: "Cappuccino", price: 65, cat: "Káva", recipe: {"Káva zrnková": 8, "Mléko čerstvé": 150} },
+            { id: 3, name: "Svíčková na smetaně", price: 285, cat: "Jídla", recipe: {"Hovězí maso": 150, "Knedlík": 4} }
         ];
 
-        let customers = JSON.parse(localStorage.getItem('g_final_customers')) || [
-            { id: 1, name: "Honza Malý", discount: 10, totalSpent: 0 },
-            { id: 2, name: "VIP Firma s.r.o.", discount: 15, totalSpent: 0 }
+        let customers = JSON.parse(localStorage.getItem('g_customers')) || [
+            { id: 1, name: "Jan Novák", discount: 10, spent: 0 },
+            { id: 2, name: "Štamgast Karel", discount: 15, spent: 0 }
         ];
 
-        let tables = JSON.parse(localStorage.getItem('g_final_tables')) || Array.from({length: 12}, (_, i) => ({
+        let tables = JSON.parse(localStorage.getItem('g_tables')) || Array.from({length: 12}, (_, i) => ({
             id: i+1, name: "Stůl "+(i+1), items: [], guestId: null
         }));
 
+        let salesLog = JSON.parse(localStorage.getItem('g_sales_log')) || [];
         let activeTable = null;
         let currentCat = "Vše";
 
@@ -137,30 +148,66 @@
             tables.forEach(t => {
                 const div = document.createElement('div');
                 div.className = `table-box ${t.items.length > 0 ? 'occupied' : ''}`;
-                let sum = t.items.reduce((s, i) => s + i.price, 0);
-                div.innerHTML = `<strong>${t.name}</strong><small>${sum > 0 ? sum+' Kč' : 'Volno'}</small>`;
+                let total = t.items.reduce((s, i) => s + i.price, 0);
+                div.innerHTML = `<strong>${t.name}</strong><small>${total > 0 ? total+' Kč' : 'Volno'}</small>`;
                 div.onclick = () => openOrder(t);
                 grid.appendChild(div);
             });
             save();
         }
 
-        // --- NAVIGACE & KATEGORIE ---
+        // --- NAVIGACE ---
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
             document.getElementById('screen-' + id).classList.remove('hidden');
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById('nav-' + id)?.classList.add('active');
-            if(id === 'admin') renderAdmin();
+            if(id === 'admin') renderAdminUI();
         }
 
-        function renderCategories() {
-            const bar = document.getElementById('category-bar');
-            const cats = ["Vše", ...new Set(menuItems.map(i => i.cat))];
-            bar.innerHTML = cats.map(c => `<button class="cat-btn ${currentCat === c ? 'active' : ''}" onclick="setCat('${c}')">${c}</button>`).join('');
+        // --- SKLAD A RECEPTURY ---
+        function renderAdminUI() {
+            const listK = document.getElementById('list-kuchyn');
+            const listB = document.getElementById('list-bar');
+            const select = document.getElementById('restock-target');
+            listK.innerHTML = ''; listB.innerHTML = ''; select.innerHTML = '';
+
+            const renderSub = (data, container) => {
+                for (let key in data) {
+                    const item = data[key];
+                    container.innerHTML += `<div class="data-row">
+                        <span>${key} ${item.isSub ? '<span class="sub-recipe-tag">POD</span>' : ''}</span>
+                        <b>${item.qty} ${item.unit}</b>
+                    </div>`;
+                    select.innerHTML += `<option value="${key}">${key}</option>`;
+                }
+            };
+            renderSub(warehouse.kuchyn, listK);
+            renderSub(warehouse.bar, listB);
         }
 
-        function setCat(c) { currentCat = c; renderMenu(); renderCategories(); }
+        function doRestock() {
+            const name = document.getElementById('restock-target').value;
+            const val = parseFloat(document.getElementById('restock-qty').value);
+            if(!val) return;
+            if(warehouse.kuchyn[name]) warehouse.kuchyn[name].qty += val;
+            else if(warehouse.bar[name]) warehouse.bar[name].qty += val;
+            alert('Naskladněno!');
+            renderAdminUI();
+            save();
+        }
+
+        // REKURZIVNÍ ODPIS (PODRECEPTURY)
+        function deduct(recipe) {
+            for (let name in recipe) {
+                let amount = recipe[name];
+                let item = warehouse.kuchyn[name] || warehouse.bar[name];
+                if (item) {
+                    item.qty -= amount;
+                    if (item.isSub && item.recipe) deduct(item.recipe);
+                }
+            }
+        }
 
         // --- POKLADNA ---
         function openOrder(t) {
@@ -172,10 +219,18 @@
             renderBill();
         }
 
+        function renderCategories() {
+            const bar = document.getElementById('category-bar');
+            const cats = ["Vše", ...new Set(menuItems.map(i => i.cat))];
+            bar.innerHTML = cats.map(c => `<button class="cat-btn ${currentCat === c ? 'active' : ''}" onclick="setCat('${c}')">${c}</button>`).join('');
+        }
+
+        function setCat(c) { currentCat = c; renderMenu(); renderCategories(); }
+
         function renderMenu() {
             const box = document.getElementById('menu-box');
             const filtered = currentCat === "Vše" ? menuItems : menuItems.filter(i => i.cat === currentCat);
-            box.innerHTML = filtered.map(m => `<button class="btn" style="background:var(--card); border:1px solid #475569; margin:0; font-size:12px;" onclick="addItem(${m.id})">${m.name}<br>${m.price} Kč</button>`).join('');
+            box.innerHTML = filtered.map(m => `<button class="btn" style="background:var(--card); border:1px solid #475569; margin:0; font-size:11px;" onclick="addItem(${m.id})">${m.name}<br>${m.price} Kč</button>`).join('');
         }
 
         function addItem(id) {
@@ -189,94 +244,67 @@
             const list = document.getElementById('bill-items');
             const guest = customers.find(c => c.id === activeTable.guestId);
             document.getElementById('current-guest').innerText = guest ? "👤 Host: " + guest.name + " (Sleva " + guest.discount + "%)" : "";
-            
             let subtotal = activeTable.items.reduce((s, i) => s + i.price, 0);
             let discount = guest ? Math.round(subtotal * (guest.discount / 100)) : 0;
-            
             list.innerHTML = activeTable.items.map(i => `<div class="data-row" style="color:black;"><span>${i.name}</span><b>${i.price} Kč</b></div>`).join('');
             document.getElementById('discount-line').innerText = discount > 0 ? "- " + discount + " Kč (Sleva)" : "";
             document.getElementById('bill-total').innerText = subtotal - discount;
         }
 
-        // --- HOSTÉ MODAL ---
-        function openCustomerModal() { document.getElementById('modal-customer').classList.remove('hidden'); renderCustomerSelection(); }
-        function closeCustomerModal() { document.getElementById('modal-customer').classList.add('hidden'); }
-        
-        function renderCustomerSelection() {
-            const div = document.getElementById('customer-select-list');
-            div.innerHTML = '<button class="btn btn-full" style="background:#eee; color:black;" onclick="assignGuest(null)">Bez hosta</button>';
-            customers.forEach(c => {
-                div.innerHTML += `<button class="btn btn-full" style="background:gold; color:black;" onclick="assignGuest(${c.id})">${c.name} (${c.discount}%)</button>`;
-            });
-        }
-
-        function assignGuest(id) {
-            activeTable.guestId = id;
-            renderBill();
-            closeCustomerModal();
-            save();
-        }
-
-        // --- ADMIN & SKLAD ---
-        function renderAdmin() {
-            const stockDiv = document.getElementById('stock-list');
-            const custDiv = document.getElementById('customer-list');
-            const sel = document.getElementById('restock-target');
-            stockDiv.innerHTML = ''; custDiv.innerHTML = ''; sel.innerHTML = '';
-
-            const allStock = {...stock.kuchyn, ...stock.bar};
-            for(let name in allStock) {
-                stockDiv.innerHTML += `<div class="data-row"><span>${name}</span><b>${allStock[name].qty} ${allStock[name].unit}</b></div>`;
-                sel.innerHTML += `<option value="${name}">${name}</option>`;
-            }
-
-            customers.forEach(c => {
-                custDiv.innerHTML += `<div class="data-row"><span>${c.name} <span class="vip-badge">${c.discount}%</span></span><b>${c.totalSpent} Kč</b></div>`;
-            });
-        }
-
-        function doRestock() {
-            const name = document.getElementById('restock-target').value;
-            const val = parseFloat(document.getElementById('restock-qty').value);
-            if(!val) return;
-            if(stock.kuchyn[name]) stock.kuchyn[name].qty += val; else stock.bar[name].qty += val;
-            alert('Naskladněno!');
-            renderAdmin();
-            save();
-        }
-
-        function deduct(recipe) {
-            for (let name in recipe) {
-                let item = stock.kuchyn[name] || stock.bar[name];
-                if (item) {
-                    item.qty -= recipe[name];
-                    if (item.isSub && item.recipe) deduct(item.recipe);
-                }
-            }
-        }
-
         function processPayment() {
             if(activeTable.items.length === 0) return;
             let total = parseInt(document.getElementById('bill-total').innerText);
+            let guest = customers.find(c => c.id === activeTable.guestId);
             
-            // Odpis ze skladu & Připsání útraty hostovi
+            // Logování pro export
+            salesLog.push({
+                date: new Date().toLocaleDateString(),
+                time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+                table: activeTable.name,
+                guest: guest ? guest.name : "Anonym",
+                price: total
+            });
+
             activeTable.items.forEach(it => { if(it.recipe) deduct(it.recipe); });
-            if(activeTable.guestId) {
-                let guest = customers.find(c => c.id === activeTable.guestId);
-                guest.totalSpent += total;
-            }
+            if(guest) guest.spent += total;
 
             activeTable.items = [];
             activeTable.guestId = null;
-            alert('Zaplaceno!');
+            save();
+            alert('Zaplaceno a odepsáno ze skladu!');
             showScreen('tables');
             init();
         }
 
+        // --- EXPORT ---
+        function exportToCSV() {
+            if(salesLog.length === 0) return alert("Žádná data k exportu.");
+            let csv = "Datum,Cas,Stul,Host,Castka\n";
+            salesLog.forEach(s => csv += `${s.date},${s.time},${s.table},${s.guest},${s.price}\n`);
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `GastroExport_${new Date().toLocaleDateString()}.csv`;
+            link.click();
+        }
+
+        // --- POMOCNÉ MODALY ---
+        function openCustomerModal() { document.getElementById('modal-customer').classList.remove('hidden'); renderCustomerSelection(); }
+        function closeCustomerModal() { document.getElementById('modal-customer').classList.add('hidden'); }
+        function renderCustomerSelection() {
+            const div = document.getElementById('customer-select-list');
+            div.innerHTML = '<button class="btn btn-full" style="background:#eee; color:black;" onclick="assignGuest(null)">Bez hosta</button>';
+            customers.forEach(c => {
+                div.innerHTML += `<button class="btn btn-full" style="background:var(--warn); color:black;" onclick="assignGuest(${c.id})">${c.name} (${c.discount}%)</button>`;
+            });
+        }
+        function assignGuest(id) { activeTable.guestId = id; renderBill(); closeCustomerModal(); save(); }
+
         function save() {
-            localStorage.setItem('g_final_stock', JSON.stringify(stock));
-            localStorage.setItem('g_final_customers', JSON.stringify(customers));
-            localStorage.setItem('g_final_tables', JSON.stringify(tables));
+            localStorage.setItem('warehouse_v1', JSON.stringify(warehouse));
+            localStorage.setItem('g_customers', JSON.stringify(customers));
+            localStorage.setItem('g_tables', JSON.stringify(tables));
+            localStorage.setItem('g_sales_log', JSON.stringify(salesLog));
         }
 
         window.onload = init;
