@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GASTRO PRO 2026</title>
+    <title>GASTRO PRO - Dashboard Edition</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        :root { --bg: #0f172a; --card: #1e293b; --accent: #3b82f6; --text: #f8fafc; }
+        :root { --bg: #0f172a; --card: #1e293b; --accent: #3b82f6; --text: #f8fafc; --success: #22c55e; }
         body { font-family: sans-serif; margin: 0; background: var(--bg); color: var(--text); }
         header { background: var(--card); padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #334155; }
         .screen { padding: 15px; }
@@ -14,20 +14,28 @@
         
         /* Mapa stolů */
         #tables-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
-        .table-box { height: 80px; background: var(--card); border-radius: 10px; border: 1px solid #475569; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .table-box { height: 80px; background: var(--card); border-radius: 10px; border: 1px solid #475569; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-size: 14px; }
         .table-box.occupied { border-color: #ef4444; background: #450a0a; }
         
+        /* Dashboard */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .stat-card { background: var(--card); padding: 15px; border-radius: 12px; text-align: center; border: 1px solid #334155; }
+        .stat-card h3 { margin: 0; color: var(--success); font-size: 20px; }
+        .stat-card p { margin: 5px 0 0; color: #94a3b8; font-size: 12px; }
+        .log-table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 10px; overflow: hidden; font-size: 14px; }
+        .log-table th, .log-table td { padding: 10px; text-align: left; border-bottom: 1px solid #334155; }
+        .log-table th { background: #334155; }
+
         /* Objednávka */
-        .order-layout { display: flex; flex-direction: column; gap: 10px; }
         .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .m-btn { background: var(--accent); color: white; border: none; padding: 15px; border-radius: 8px; font-weight: bold; }
         .bill-area { background: white; color: black; padding: 15px; border-radius: 10px; margin-top: 10px; }
         
         /* Tlačítka */
-        button { cursor: pointer; }
-        .btn-pay { background: #22c55e; color: white; border: none; padding: 15px; width: 100%; border-radius: 8px; font-weight: bold; margin-top: 10px; }
+        .btn-pay { background: var(--success); color: white; border: none; padding: 15px; width: 100%; border-radius: 8px; font-weight: bold; margin-top: 10px; }
         .btn-qr { background: #6366f1; color: white; border: none; padding: 15px; width: 100%; border-radius: 8px; font-weight: bold; margin-top: 5px; }
-        
+        .btn-nav { padding: 10px; background: #475569; color: white; border: none; border-radius: 8px; }
+
         /* Modal */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 100; }
         .modal-content { background: white; color: black; padding: 20px; border-radius: 15px; text-align: center; }
@@ -36,53 +44,67 @@
 <body>
 
     <header>
-        <div>👤 Profi Obsluha</div>
-        <h1 onclick="location.reload()">GASTRO PRO</h1>
-        <button onclick="showAdmin()" style="padding: 8px; background: #475569; color: white; border: none; border-radius: 5px;">ADMIN</button>
+        <div>👤 Obsluha</div>
+        <h1 onclick="showTables()">GASTRO PRO</h1>
+        <button class="btn-nav" onclick="showAdmin()">📊 DASHBOARD</button>
     </header>
 
     <div id="screen-tables" class="screen">
-        <div>Dnešní tržba: <b id="stat-revenue">0</b> Kč</div>
         <div id="tables-grid"></div>
     </div>
 
     <div id="screen-order" class="screen hidden">
-        <div class="order-layout">
-            <h2 id="active-table-title">Stůl</h2>
-            <div id="menu-items" class="menu-grid"></div>
-            <div class="bill-area">
-                <div id="bill-list"></div>
-                <hr>
-                <div style="font-weight: bold;">CELKEM: <span id="bill-total">0</span> Kč</div>
+        <h2 id="active-table-title">Stůl</h2>
+        <div id="menu-items" class="menu-grid"></div>
+        <div class="bill-area">
+            <div id="bill-list"></div>
+            <div style="font-weight: bold; margin-top: 10px; border-top: 1px solid #ccc; padding-top: 5px;">
+                CELKEM: <span id="bill-total">0</span> Kč
             </div>
-            <button class="btn-pay" onclick="pay('cash')">HOTOVĚ ✅</button>
-            <button class="btn-qr" onclick="openQR()">QR PLATBA 📱</button>
-            <button onclick="showTables()" style="padding: 10px; background: #64748b; color: white; border: none; border-radius: 8px; margin-top: 10px;">ZPĚT</button>
         </div>
+        <button class="btn-pay" onclick="pay('cash')">HOTOVĚ ✅</button>
+        <button class="btn-qr" onclick="openQR()">QR PLATBA 📱</button>
+        <button onclick="showTables()" style="padding: 15px; width: 100%; background: #475569; color: white; border: none; border-radius: 8px; margin-top: 10px;">ZPĚT</button>
     </div>
 
     <div id="screen-admin" class="screen hidden">
-        <h2>Admin Panel</h2>
-        <div id="admin-log"></div>
-        <button onclick="showTables()" style="padding: 15px; width: 100%; background: #475569; color: white; border: none; border-radius: 8px;">ZPĚT</button>
+        <h2>Manažerský přehled</h2>
+        
+        <div class="stats-grid">
+            <div class="stat-card"><h3 id="dash-total">0 Kč</h3><p>Dnešní tržba</p></div>
+            <div class="stat-card"><h3 id="dash-count">0</h3><p>Počet účtů</p></div>
+        </div>
+
+        <h3>Poslední platby</h3>
+        <table class="log-table">
+            <thead>
+                <tr><th>Čas</th><th>Stůl</th><th>Částka</th></tr>
+            </thead>
+            <tbody id="log-body"></tbody>
+        </table>
+
+        <button onclick="showTables()" style="padding: 15px; width: 100%; background: #475569; color: white; border: none; border-radius: 8px; margin-top: 20px;">ZPĚT NA STOLY</button>
+        <button onclick="clearData()" style="padding: 10px; width: 100%; background: #ef4444; color: white; border: none; border-radius: 8px; margin-top: 10px; opacity: 0.5;">Resetovat denní data</button>
     </div>
 
     <div id="qr-modal" class="modal hidden">
         <div class="modal-content">
-            <h3>QR Platba</h3>
+            <h3>Naskenujte k úhradě</h3>
             <div id="qrcode"></div>
-            <button onclick="closeQR()" style="margin-top: 10px; padding: 10px;">ZAVŘÍT</button>
-            <button onclick="pay('qr')" style="margin-top: 10px; padding: 10px; background: #22c55e; color: white; border: none;">POTVRDIT PLACENO</button>
+            <p id="qr-price-info" style="font-weight: bold;"></p>
+            <button onclick="closeQR()" style="padding: 10px; width: 100%;">ZAVŘÍT</button>
+            <button onclick="pay('qr')" style="margin-top: 10px; padding: 15px; background: var(--success); color: white; border: none; width: 100%; border-radius: 8px;">POTVRDIT PLACENO</button>
         </div>
     </div>
 
     <script>
         // DATA
-        let recipes = [
+        const recipes = [
             { id: 1, name: "Pivo 12°", price: 55 },
             { id: 2, name: "Kofola 0.5", price: 45 },
             { id: 3, name: "Svíčková", price: 245 },
-            { id: 4, name: "Guláš", price: 195 }
+            { id: 4, name: "Guláš", price: 195 },
+            { id: 5, name: "Espresso", price: 42 }
         ];
         
         let tables = JSON.parse(localStorage.getItem('g_tables')) || Array.from({length: 12}, (_, i) => ({
@@ -92,14 +114,10 @@
         let logs = JSON.parse(localStorage.getItem('g_logs')) || [];
         let activeTable = null;
 
-        // INICIALIZACE
+        // INICIALIZACE MAPY STOLŮ
         function init() {
             const grid = document.getElementById('tables-grid');
             grid.innerHTML = '';
-            let totalDay = 0;
-            logs.forEach(l => totalDay += l.price);
-            document.getElementById('stat-revenue').innerText = totalDay;
-
             tables.forEach(t => {
                 const div = document.createElement('div');
                 div.className = 'table-box ' + t.status;
@@ -109,6 +127,7 @@
                 div.onclick = () => openOrder(t);
                 grid.appendChild(div);
             });
+            save();
         }
 
         function openOrder(t) {
@@ -140,13 +159,21 @@
             list.innerHTML = '';
             activeTable.items.forEach(item => {
                 total += item.price;
-                list.innerHTML += '<div>' + item.name + ' - ' + item.price + ' Kč</div>';
+                list.innerHTML += '<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>' + item.name + '</span><b>' + item.price + ' Kč</b></div>';
             });
             document.getElementById('bill-total').innerText = total;
         }
 
         function pay(method) {
-            activeTable.items.forEach(i => logs.push({price: i.price, date: new Date()}));
+            const total = parseInt(document.getElementById('bill-total').innerText);
+            if(total > 0) {
+                logs.push({
+                    price: total, 
+                    date: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                    table: activeTable.name,
+                    method: method
+                });
+            }
             activeTable.items = [];
             activeTable.status = 'free';
             save();
@@ -158,11 +185,36 @@
             const total = document.getElementById('bill-total').innerText;
             if(total == 0) return;
             document.getElementById('qr-modal').classList.remove('hidden');
+            document.getElementById('qr-price-info').innerText = total + " Kč";
             document.getElementById('qrcode').innerHTML = '';
             new QRCode(document.getElementById("qrcode"), {
-                text: "SPD*1.0*ACC:123456789/0100*AM:" + total + "*CUR:CZK",
-                width: 150, height: 150
+                text: "SPD*1.0*ACC:123456789/0100*AM:" + total + "*CUR:CZK*MSG:GastroERP",
+                width: 180, height: 180
             });
+        }
+
+        function showAdmin() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            document.getElementById('screen-admin').classList.remove('hidden');
+            
+            let totalDay = 0;
+            logs.forEach(l => totalDay += l.price);
+            document.getElementById('dash-total').innerText = totalDay + " Kč";
+            document.getElementById('dash-count').innerText = logs.length;
+
+            const logBody = document.getElementById('log-body');
+            logBody.innerHTML = '';
+            logs.slice().reverse().forEach(l => {
+                logBody.innerHTML += `<tr><td>${l.date}</td><td>${l.table}</td><td><b>${l.price} Kč</b></td></tr>`;
+            });
+        }
+
+        function clearData() {
+            if(confirm("Opravdu smazat dnešní tržby?")) {
+                logs = [];
+                save();
+                showAdmin();
+            }
         }
 
         function closeQR() { document.getElementById('qr-modal').classList.add('hidden'); }
@@ -170,12 +222,6 @@
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
             document.getElementById('screen-tables').classList.remove('hidden');
             init(); 
-        }
-        function showAdmin() {
-            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-            document.getElementById('screen-admin').classList.remove('hidden');
-            document.getElementById('admin-log').innerHTML = 'Posledních 10 plateb:<br>' + 
-                logs.slice(-10).map(l => l.price + ' Kč').join(', ');
         }
         function save() {
             localStorage.setItem('g_tables', JSON.stringify(tables));
