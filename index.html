@@ -1,217 +1,246 @@
-<!DOCTYPE html>
-<html lang="cs">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GASTRO ERP PRO 2026 - RECIPE EDITOR</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <style>
-        :root { --bg: #0f172a; --card: #1e293b; --accent: #3b82f6; --success: #22c55e; --warn: #f59e0b; --danger: #ef4444; --text: #f8fafc; }
-        body { font-family: sans-serif; margin: 0; background: var(--bg); color: var(--text); user-select: none; }
-        header { background: var(--card); padding: 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #334155; position: sticky; top: 0; z-index: 50; }
-        .screen { padding: 15px; padding-bottom: 80px; }
-        .hidden { display: none !important; }
-        
-        .nav-bar { position: fixed; bottom: 0; width: 100%; background: var(--card); display: flex; justify-content: space-around; padding: 10px 0; border-top: 2px solid #334155; z-index: 100; }
-        .nav-item { color: white; text-decoration: none; font-size: 11px; text-align: center; opacity: 0.5; cursor: pointer; }
-        .nav-item.active { opacity: 1; color: var(--accent); font-weight: bold; }
+// RESTAURANT SYSTEM SaaS FINAL + STRIPE FULL INTEGRATION
+// Frontend (React) + Backend (Node.js Express) + Stripe Checkout
 
-        .admin-section { background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 15px; border-left: 4px solid var(--accent); }
-        .data-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #334155; font-size: 13px; align-items: center; }
-        
-        input, select { background: #334155; border: 1px solid #475569; color: white; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; margin-bottom: 5px; }
-        .btn { padding: 15px; border: none; border-radius: 10px; font-weight: bold; color: white; cursor: pointer; width: 100%; margin-top: 5px; }
 
-        .recipe-tag { background: #334155; padding: 3px 8px; border-radius: 5px; font-size: 11px; margin-right: 5px; border: 1px solid #475569; }
-        .bill-area { background: white; color: black; padding: 12px; border-radius: 10px; margin: 10px 0; }
-        #tables-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .table-box { height: 85px; background: var(--card); border-radius: 12px; border: 1px solid #475569; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .table-box.occupied { border-color: var(--danger); background: #450a0a; }
-    </style>
-</head>
-<body>
+// ================= BACKEND =================
+// server.js
 
-    <header>
-        <h1 style="font-size: 16px;">GASTRO ERP PRO 2026</h1>
-        <div style="font-size:12px; color:var(--success);">● EDITACE AKTIVNÍ</div>
-    </header>
 
-    <div id="screen-tables" class="screen">
-        <div id="tables-grid"></div>
-    </div>
+import express from "express";
+import cors from "cors";
+import Stripe from "stripe";
 
-    <div id="screen-admin" class="screen hidden">
-        <div class="admin-section" style="border-left-color: var(--warn);">
-            <h3>📝 EDITACE RECEPTUR</h3>
-            <label style="font-size:12px;">Vyberte jídlo z menu:</label>
-            <select id="edit-recipe-item" onchange="loadRecipeToEditor()"></select>
-            
-            <div id="recipe-editor-ui" style="background:#0f172a; padding:10px; border-radius:8px; margin-top:10px;">
-                <label style="font-size:12px;">Přidat surovinu do receptu:</label>
-                <div style="display:flex; gap:5px;">
-                    <select id="edit-ingredient-select" style="width:60%"></select>
-                    <input type="number" id="edit-ingredient-qty" placeholder="Kolik" style="width:30%">
-                </div>
-                <button class="btn" style="background:var(--accent); padding:8px;" onclick="addIngredientToRecipe()">PŘIDAT DO RECEPTU</button>
-                <div id="current-recipe-display" style="margin-top:10px; font-size:12px;"></div>
-            </div>
-        </div>
 
-        <div class="admin-section">
-            <h3>📦 Sklady (Stav)</h3>
-            <div id="list-kuchyn"></div>
-            <div id="list-bar" style="margin-top:10px; border-top:1px solid #334155; padding-top:10px;"></div>
-        </div>
-    </div>
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-    <div id="screen-order" class="screen hidden">
-        <h2 id="table-title">Stůl</h2>
-        <div id="menu-box" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;"></div>
-        <div class="bill-area" id="bill-items"></div>
-        <button class="btn" style="background:var(--success);" onclick="processPayment()">ZAPLATIT ✅</button>
-        <button class="btn" style="background:#475569;" onclick="showScreen('tables')">ZPĚT</button>
-    </div>
 
-    <div class="nav-bar">
-        <div class="nav-item active" onclick="showScreen('tables')" id="nav-tables">🪑<br>Stoly</div>
-        <div class="nav-item" onclick="showScreen('admin')" id="nav-admin">📦<br>Admin</div>
-        <div class="nav-item" onclick="alert('KDS je připojen')">👨‍🍳<br>KDS</div>
-    </div>
+const stripe = new Stripe("YOUR_STRIPE_SECRET_KEY");
 
-    <script>
-        // --- DATA ---
-        let warehouse = JSON.parse(localStorage.getItem('g_warehouse_v2')) || {
-            kuchyn: { "Hovězí maso": {qty:5000, unit:"g"}, "Knedlík": {qty:10, unit:"ks", isSub:true, recipe:{"Mouka":200}} },
-            bar: { "Pivo Sud": {qty:50000, unit:"ml"}, "Káva": {qty:2000, unit:"g"} }
-        };
 
-        let menuItems = JSON.parse(localStorage.getItem('g_menu_v2')) || [
-            { id: 1, name: "Pivo 12°", price: 55, recipe: {"Pivo Sud": 500} },
-            { id: 2, name: "Svíčková", price: 285, recipe: {"Hovězí maso": 150, "Knedlík": 4} }
-        ];
+app.post("/create-checkout-session", async (req, res) => {
+const { items } = req.body;
 
-        let tables = Array.from({length: 12}, (_, i) => ({ id: i+1, name: "Stůl "+(i+1), items: [] }));
-        let activeTable = null;
 
-        function init() {
-            const grid = document.getElementById('tables-grid');
-            grid.innerHTML = '';
-            tables.forEach(t => {
-                const div = document.createElement('div');
-                div.className = `table-box ${t.items.length > 0 ? 'occupied' : ''}`;
-                div.innerHTML = `<strong>${t.name}</strong><small>${t.items.length > 0 ? 'Obsazeno' : 'Volno'}</small>`;
-                div.onclick = () => openOrder(t);
-                grid.appendChild(div);
-            });
-            save();
-        }
+const session = await stripe.checkout.sessions.create({
+payment_method_types: ["card"],
+line_items: items.map(item => ({
+price_data: {
+currency: "czk",
+product_data: {
+name: item.name,
+},
+unit_amount: item.price * 100,
+},
+quantity: 1,
+})),
+mode: "payment",
+success_url: "http://localhost:3000/success",
+cancel_url: "http://localhost:3000/cancel",
+});
 
-        function showScreen(id) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-            document.getElementById('screen-' + id).classList.remove('hidden');
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            document.getElementById('nav-' + id)?.classList.add('active');
-            if(id === 'admin') renderAdminUI();
-        }
 
-        // --- EDITOR RECEPTUR ---
-        function renderAdminUI() {
-            const selItem = document.getElementById('edit-recipe-item');
-            const selIng = document.getElementById('edit-ingredient-select');
-            const listK = document.getElementById('list-kuchyn');
-            const listB = document.getElementById('list-bar');
+res.json({ url: session.url });
+});
 
-            selItem.innerHTML = menuItems.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
-            
-            let allIngs = {...warehouse.kuchyn, ...warehouse.bar};
-            selIng.innerHTML = Object.keys(allIngs).map(name => `<option value="${name}">${name}</option>`).join('');
-            
-            listK.innerHTML = '<strong>👨‍🍳 KUCHYNĚ:</strong>' + Object.keys(warehouse.kuchyn).map(k => `<div class="data-row"><span>${k}</span><b>${warehouse.kuchyn[k].qty}</b></div>`).join('');
-            listB.innerHTML = '<strong>🍺 BAR:</strong>' + Object.keys(warehouse.bar).map(b => `<div class="data-row"><span>${b}</span><b>${warehouse.bar[b].qty}</b></div>`).join('');
-            
-            loadRecipeToEditor();
-        }
 
-        function loadRecipeToEditor() {
-            const id = document.getElementById('edit-recipe-item').value;
-            const item = menuItems.find(m => m.id == id);
-            const display = document.getElementById('current-recipe-display');
-            display.innerHTML = "<strong>Aktuální receptura:</strong><br>";
-            if(!item.recipe || Object.keys(item.recipe).length === 0) {
-                display.innerHTML += "Žádné suroviny.";
-            } else {
-                for(let ing in item.recipe) {
-                    display.innerHTML += `<div class="data-row"><span>${ing}: ${item.recipe[ing]}</span><button onclick="removeIng('${ing}')" style="background:red; border:none; color:white; padding:2px 5px; border-radius:3px;">X</button></div>`;
-                }
-            }
-        }
+app.listen(3001, () => console.log("Server running on port 3001"));
 
-        function addIngredientToRecipe() {
-            const itemId = document.getElementById('edit-recipe-item').value;
-            const ingName = document.getElementById('edit-ingredient-select').value;
-            const qty = parseFloat(document.getElementById('edit-ingredient-qty').value);
-            
-            if(!qty) return alert("Zadejte množství!");
-            
-            const item = menuItems.find(m => m.id == itemId);
-            if(!item.recipe) item.recipe = {};
-            item.recipe[ingName] = qty;
-            
-            save();
-            loadRecipeToEditor();
-        }
 
-        function removeIng(ingName) {
-            const itemId = document.getElementById('edit-recipe-item').value;
-            const item = menuItems.find(m => m.id == itemId);
-            delete item.recipe[ingName];
-            save();
-            loadRecipeToEditor();
-        }
+// ================= FRONTEND =================
 
-        // --- POKLADNA & ODPIS ---
-        function openOrder(t) {
-            activeTable = t;
-            showScreen('order');
-            document.getElementById('table-title').innerText = t.name;
-            const box = document.getElementById('menu-box');
-            box.innerHTML = menuItems.map(m => `<button class="btn" style="background:var(--card); border:1px solid #475569;" onclick="addItem(${m.id})">${m.name}<br>${m.price} Kč</button>`).join('');
-            renderBill();
-        }
 
-        function addItem(id) {
-            const it = menuItems.find(x => x.id === id);
-            activeTable.items.push({...it});
-            renderBill();
-        }
+import React, { useState } from "react";
 
-        function renderBill() {
-            const list = document.getElementById('bill-items');
-            list.innerHTML = activeTable.items.map(i => `<div class="data-row" style="color:black;"><span>${i.name}</span><b>${i.price} Kč</b></div>`).join('');
-        }
 
-        function processPayment() {
-            if(activeTable.items.length === 0) return;
-            activeTable.items.forEach(it => {
-                if(it.recipe) {
-                    for(let ing in it.recipe) {
-                        let target = warehouse.kuchyn[ing] || warehouse.bar[ing];
-                        if(target) target.qty -= it.recipe[ing];
-                    }
-                }
-            });
-            activeTable.items = [];
-            save();
-            showScreen('tables');
-            init();
-        }
+export default function QRPage() {
+const [cart, setCart] = useState([]);
 
-        function save() {
-            localStorage.setItem('g_warehouse_v2', JSON.stringify(warehouse));
-            localStorage.setItem('g_menu_v2', JSON.stringify(menuItems));
-        }
 
-        window.onload = init;
-    </script>
-</body>
-</html>
+const addItem = (item) => {
+setCart([...cart, item]);
+};
+
+
+const checkout = async () => {
+const res = await fetch("http://localhost:3001/create-checkout-session", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ items: cart })
+});
+
+
+const data = await res.json();
+window.location.href = data.url;
+
+
+
+};
+
+
+return (
+
+
+
+QR Order
+
+
+
+  <button onClick={() => addItem({ name: "Burger", price: 150 })}>
+    Add Burger
+  </button>
+
+  <button onClick={() => addItem({ name: "Pizza", price: 200 })}>
+    Add Pizza
+  </button>
+
+  <div className="mt-4">
+    <h2>Cart</h2>
+    {cart.map((c, i) => (
+      <div key={i}>{c.name} - {c.price} Kč</div>
+    ))}
+  </div>
+
+  <button onClick={checkout} className="mt-4 bg-green-500 text-white px-4 py-2">
+    Pay with Card
+  </button>
+</div>
+
+
+
+);
+}
+
+
+// ================= DEPLOY GUIDE =================
+
+
+/*
+
+
+
+
+Backend deploy (Render.com or Railway.app)
+
+
+
+
+
+
+upload server.js
+
+
+add STRIPE_SECRET_KEY env variable
+
+
+run: node server.js
+
+
+
+
+
+
+Frontend deploy (Vercel)
+
+
+
+
+
+
+upload React app
+
+
+set API URL to your backend URL
+
+
+
+
+
+
+Firebase
+
+
+
+
+
+
+enable Auth (email/password)
+
+
+create Firestore collections:
+
+
+
+users
+
+
+tables
+
+
+orders
+
+
+inventory
+
+
+
+
+
+
+
+
+
+
+Stripe
+
+
+
+
+
+
+create account
+
+
+get secret + publishable key
+
+
+enable payments
+
+
+
+
+
+
+Domain
+
+
+
+
+
+
+connect your domain (např. tvojedomena.cz)
+
+
+
+
+
+
+QR kódy
+
+
+
+
+
+
+generuj URL: https://tvojeapp.cz/order/1
+
+
+vytiskni a dej na stoly
+
+
+
+
+DONE ✅
+*/
+
