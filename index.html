@@ -126,7 +126,22 @@
             { id:5, name:"Espresso", price:45, recipe: { "kava": 8 } }
         ];
 
-        let tables = JSON.parse(localStorage.getItem('g_tables')) || Array.from({length: 12}, (_, i) => ({
+        // --- OPRAVENÝ SKLAD ---
+// Tento řádek smaže stará špatná data, aby se tabulka správně načetla
+if(localStorage.getItem('g_stock') && localStorage.getItem('g_stock').includes('"1":')) {
+    localStorage.removeItem('g_stock'); 
+}
+
+let stock = JSON.parse(localStorage.getItem('g_stock')) || {
+    "pivo": 50000, 
+    "kofola": 30000, 
+    "maso": 10000, 
+    "knedlik": 50, 
+    "kava": 2000 
+};
+
+// ... zbytek menuItems a funkcí nechej stejný ...
+
             id: i+1, name: "Stůl "+(i+1), items: [], status: 'free', res: null
         }));
         let logs = JSON.parse(localStorage.getItem('g_logs')) || [];
