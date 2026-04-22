@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Gastro POS - MPT-II</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .table-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .active-table { border: 3px solid #2563eb; background-color: #eff6ff; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen text-gray-900 font-sans">
+
+    <div class="max-w-md mx-auto bg-white min-h-screen shadow-lg flex flex-col">
+        
+        <header class="bg-blue-600 text-white p-4 shadow-md">
+            <h1 class="text-xl font-bold text-center">Restaurační Systém v1.0</h1>
+            <p id="status" class="text-xs text-center opacity-80">Tiskárna nepřipojena</p>
+        </header>
+
+        <div id="view-tables" class="p-4 flex-1">
+            <h2 class="font-bold mb-4">Vyberte stůl:</h2>
+            <div id="table-list" class="table-grid">
+                </div>
+        </div>
+
+        <div id="view-order" class="hidden flex-1 flex flex-col p-4">
+            <button onclick="showTables()" class="text-blue-600 font-bold mb-4">← Zpět na stoly</button>
+            <h2 id="current-table-label" class="text-xl font-black mb-4 underline">Stůl č. 1</h2>
+            
+            <div class="flex-1 overflow-y-auto">
+                <h3 class="font-bold text-gray-500 text-sm uppercase mb-2">Nabídka</h3>
+                <div id="menu-items" class="space-y-2 mb-6"></div>
+
+                <h3 class="font-bold text-gray-500 text-sm uppercase mb-2">Košík</h3>
+                <div id="cart-items" class="bg-gray-50 rounded-lg p-3 text-sm space-y-1">
+                    <p class="text-gray-400 italic">Prázdno...</p>
+                </div>
+            </div>
+
+            <div class="border-t pt-4 mt-4">
+                <div class="flex justify-between text-xl font-bold mb-4">
+                    <span>Celkem:</span>
+                    <span><span id="total-price">0</span> Kč</span>
+                </div>
+                <button onclick="printOrder()" class="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-2xl font-black text-lg shadow-lg active:scale-95 transition-transform">
+                    ZAPLATIT & TISKNOUT
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DATA SYSTÉMU
+        const menu = [
+            { id: 1, nazev: "Pivo Kozel 11", cena: 45 },
+            { id: 2, nazev: "Kofola 0.5l", cena: 40 },
+            { id: 3, nazev: "Smazak s hranolky", cena: 175 },
+            { id: 4, nazev: "Gulasovka", cena: 65 },
+            { id: 5, nazev: "Kafe / Espresso", cena: 50 }
+        ];
+
+        let currentTable = null;
+        let cart = [];
+        let printerCharacteristic = null;
+
+        // INICIALIZACE ROZHRANÍ
+        function init() {
+            const tableList = document.getElementById('table-list');
+            for (let i = 1; i <= 9; i++) {
+                const btn = document.createElement('div');
+                btn.className = "bg-gray-50 border-2 border-gray-200 h-20 flex items-center justify-center rounded-xl font-bold cursor-pointer hover:bg-blue-50";
+                btn.innerText = i;
+                btn.onclick = () => openTable(i);
+                tableList.appendChild(btn);
+            }
+
+            const menuContainer = document.getElementById('menu-items');
+            menu.forEach(item => {
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center bg-white border p-3 rounded-lg shadow-sm";
+                div.innerHTML = `
+                    <span>${item.nazev} <b class="ml-2">${item.cena},-</b></span>
+                    <button onclick="addToCart(${item.id})" class="bg-blue-600 text-white w-8 h-8 rounded-full font-bold">+</button>
+                `;
+                menuContainer.appendChild(div);
+            });
+        }
+
+        // NAVIGACE
+        function openTable(num) {
+            currentTable = num;
+            document.getElementById('current-table-label').innerText = `Stůl č. ${num}`;
+            document.getElementById('view-tables').classList.add('hidden');
+            document.getElementById('view-order').classList.remove('hidden');
+        }
+
+        function showTables() {
+            document.getElementById('view-tables').classList.remove('hidden');
+            document.getElementById('view-order').classList.add('hidden');
+            cart = [];
+            updateCartUI();
+        }
+
+        // LOGIKA KOŠÍKU
+        function addToCart(id) {
+            const item = menu.find(m => m.id === id);
+            cart.push(item);
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const container = document.getElementById('cart-items');
+            const totalEl = document.getElementById('total-price');
+            if (cart.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 italic">Prázdno...</p>';
+                totalEl.innerText = "0";
+                return;
+            }
+            container.innerHTML = cart.map(i => `<div class="flex justify-between"><span>${i.nazev}</span><span>${i.cena} Kč</span></div>`).join('');
+            totalEl.innerText = cart.reduce((sum, i) => sum + i.cena, 0);
+        }
+
+        // --- AI TISKOVÝ MODUL (ESC/POS) ---
+
+        // Funkce pro odstranění diakritiky (tiskárny ji často neumí)
+        function removeAccents(str) {
+            return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        }
+
+        async function connectPrinter() {
+            try {
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ namePrefix: 'MPT' }, { namePrefix: 'MPT-II' }],
+                    optionalServices: [0xFF00]
+                });
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService(0xFF00);
+                printerCharacteristic = await service.getCharacteristic(0xFF01);
+                document.getElementById('status').innerText = "Tiskárna PŘIPOJENA ✅";
+                return true;
+            } catch (e) {
+                alert("Chyba připojení: " + e.message);
+                return false;
+            }
+        }
+
+        async function printOrder() {
+            if (cart.length === 0) return;
+
+            // Pokud nejsme připojeni, zkusíme se připojit
+            if (!printerCharacteristic) {
+                const connected = await connectPrinter();
+                if (!connected) return;
+            }
+
+            try {
+                const total = document.getElementById('total-price').innerText;
+                const encoder = new TextEncoder();
+                
+                // ESC/POS Příkazy
+                const INIT = "\x1B\x40";
+                const CENTER = "\x1B\x61\x01";
+                const LEFT = "\x1B\x61\x00";
+                const FEED = "\n\n\n\n";
+
+                let receiptText = INIT + CENTER + "RESTAURACE AI\n";
+                receiptText += "--------------------------------\n";
+                receiptText += `STUL CISLO: ${currentTable}\n`;
+                receiptText += "--------------------------------\n" + LEFT;
+
+                cart.forEach(item => {
+                    const line = removeAccents(item.nazev).substring(0, 20).padEnd(22) + item.cena + " Kc\n";
+                    receiptText += line;
+                });
+
+                receiptText += "--------------------------------\n" + CENTER;
+                receiptText += `CELKEM: ${total} Kc\n`;
+                receiptText += "DEKUJEME ZA NAVSTEVU\n" + FEED;
+
+                // Odeslání dat po kouscích (tiskárny mají malý buffer)
+                const bytes = encoder.encode(receiptText);
+                await printerCharacteristic.writeValue(bytes);
+
+                alert("Vytištěno! Stůl vyřízen.");
+                showTables();
+            } catch (e) {
+                alert("Chyba při tisku: " + e.message);
+                printerCharacteristic = null; // Resetovat spojení
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
+
