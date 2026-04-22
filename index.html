@@ -2,52 +2,153 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gastro POS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI POS | Smart Restaurant</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: sans-serif; -webkit-tap-highlight-color: transparent; }
+        .grid-tables { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .grid-menu { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    </style>
 </head>
-<body class="bg-gray-100 p-4">
-    <div class="max-w-md mx-auto bg-white rounded-2xl shadow-xl p-6 mt-10">
-        <h1 class="text-3xl font-black text-blue-600 text-center mb-8">POS SYSTÉM</h1>
+<body class="bg-gray-100 min-h-screen">
+
+    <div id="app" class="max-w-md mx-auto bg-white min-h-screen shadow-xl flex flex-col">
         
-        <div class="space-y-4">
-            <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                <span class="font-bold text-lg">Pivo Kozel 11</span>
-                <span class="text-blue-600 font-bold">45 Kč</span>
-            </div>
+        <header class="bg-slate-800 text-white p-4 shadow-lg flex justify-between items-center">
+            <h1 class="font-black text-xl tracking-tighter">MOJE RESTAURACE</h1>
+            <div id="status" class="text-[10px] bg-red-500 px-2 py-1 rounded">OFFLINE TISK</div>
+        </header>
+
+        <div id="section-tables" class="p-4">
+            <h2 class="text-gray-500 font-bold mb-3 uppercase text-xs">Obsluha stolů</h2>
+            <div class="grid-tables" id="table-grid"></div>
         </div>
 
-        <button id="printBtn" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg active:scale-95 transition-transform mt-10">
-            TISKNOUT TEST (MPT-II)
-        </button>
-        
-        <p id="status" class="text-center text-xs mt-4 text-gray-400 text-uppercase tracking-widest">Připraveno k tisku</p>
+        <div id="section-pos" class="hidden flex-1 flex flex-col p-4 bg-gray-50">
+            <div class="flex justify-between items-center mb-4">
+                <button onclick="showTables()" class="text-slate-500 font-bold">← ZPĚT</button>
+                <span id="label-table" class="bg-slate-800 text-white px-4 py-1 rounded-full font-bold">STŮL 1</span>
+            </div>
+
+            <div class="flex-1 overflow-y-auto">
+                <div class="grid-menu mb-6" id="menu-grid"></div>
+                
+                <h3 class="font-bold border-b-2 border-slate-200 pb-1 mb-2 text-sm uppercase">Položky v objednávce</h3>
+                <div id="cart-list" class="space-y-2 text-sm"></div>
+            </div>
+
+            <div class="pt-4 mt-2 border-t-2 border-dashed border-gray-300">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-gray-500 font-bold">CELKEM K ÚHRADĚ</span>
+                    <span class="text-2xl font-black text-slate-800"><span id="total-price">0</span> Kč</span>
+                </div>
+                <button onclick="processPrint()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-lg shadow-blue-200 shadow-lg active:scale-95 transition-all">
+                    ZAPLATIT A TISKNOUT
+                </button>
+            </div>
+        </div>
     </div>
 
     <script>
-        document.getElementById('printBtn').addEventListener('click', async () => {
-            const status = document.getElementById('status');
+        const menu = [
+            { id: 1, name: "Pivo 11°", price: 45 },
+            { id: 2, name: "Pivo 12°", price: 52 },
+            { id: 3, name: "Kofola 0.5", price: 38 },
+            { id: 4, name: "Domácí limo", price: 55 },
+            { id: 5, name: "Gulášovku", price: 65 },
+            { id: 6, name: "Smažák", price: 185 },
+            { id: 7, name: "Guláš", price: 175 },
+            { id: 8, name: "Espresso", price: 48 }
+        ];
+
+        let cart = [];
+        let activeTable = null;
+        let printer = null;
+
+        // GENERUJ STOLY
+        const tableGrid = document.getElementById('table-grid');
+        for(let i=1; i<=12; i++) {
+            const btn = document.createElement('div');
+            btn.className = "bg-white border-2 border-gray-200 h-16 flex items-center justify-center rounded-xl font-black text-slate-700 active:bg-blue-600 active:text-white transition-colors cursor-pointer";
+            btn.innerText = i;
+            btn.onclick = () => openTable(i);
+            tableGrid.appendChild(btn);
+        }
+
+        // GENERUJ MENU
+        const menuGrid = document.getElementById('menu-grid');
+        menu.forEach(item => {
+            const btn = document.createElement('div');
+            btn.className = "bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center active:scale-95 transition-transform";
+            btn.innerHTML = `<span class="text-xs font-bold text-gray-800 uppercase">${item.name}</span><span class="text-blue-600 font-black">${item.price},-</span>`;
+            btn.onclick = () => addToCart(item);
+            menuGrid.appendChild(btn);
+        });
+
+        function openTable(n) {
+            activeTable = n;
+            document.getElementById('label-table').innerText = "STŮL " + n;
+            document.getElementById('section-tables').classList.add('hidden');
+            document.getElementById('section-pos').classList.remove('hidden');
+        }
+
+        function showTables() {
+            document.getElementById('section-tables').classList.remove('hidden');
+            document.getElementById('section-pos').classList.add('hidden');
+            cart = [];
+            updateUI();
+        }
+
+        function addToCart(item) {
+            cart.push({...item});
+            updateUI();
+        }
+
+        function updateUI() {
+            const list = document.getElementById('cart-list');
+            const total = document.getElementById('total-price');
+            list.innerHTML = cart.length === 0 ? '<p class="text-gray-400 italic">Zatím nic...</p>' : 
+                cart.map((i, idx) => `<div class="flex justify-between"><span>${i.name}</span><span class="font-bold">${i.price} Kč</span></div>`).join('');
+            total.innerText = cart.reduce((s, i) => s + i.price, 0);
+        }
+
+        function removeAccents(str) {
+            return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        }
+
+        async function connect() {
             try {
-                status.innerText = "HLEDÁM TISKÁRNU...";
                 const device = await navigator.bluetooth.requestDevice({
                     filters: [{ namePrefix: 'MPT' }, { namePrefix: 'Bluetooth' }],
                     optionalServices: [0xFF00]
                 });
                 const server = await device.gatt.connect();
                 const service = await server.getPrimaryService(0xFF00);
-                const char = await service.getCharacteristic(0xFF01);
-                
-                // Jednoduchý ESC/POS příkaz pro tisk
-                const encoder = new TextEncoder();
-                const data = encoder.encode("\x1B\x40\x1B\x61\x01\nTEST TISKU OK\nS23 PLUS CONNECTED\n\n\n\n\n");
-                
-                await char.writeValue(data);
-                status.innerText = "VYTIŠTĚNO! ✅";
+                printer = await service.getCharacteristic(0xFF01);
+                document.getElementById('status').innerText = "TISK PŘIPRAVEN";
+                document.getElementById('status').classList.replace('bg-red-500', 'bg-green-500');
+                return true;
             } catch (e) {
-                console.error(e);
-                status.innerText = "CHYBA: " + e.message;
+                alert("Bluetooth: " + e.message);
+                return false;
             }
-        });
-    </script>
-</body>
-</html>
+        }
+
+        async function processPrint() {
+            if (cart.length === 0) return;
+            if (!printer) {
+                const isConnected = await connect();
+                if (!isConnected) return;
+            }
+
+            try {
+                const now = new Date().toLocaleString('cs-CZ');
+                const total = document.getElementById('total-price').innerText;
+                
+                let p = "\x1B\x40"; // Init
+                p += "\x1B\x61\x01"; // Center
+                p += "MOJE RESTAURACE\n";
+                p += "--------------------------------\n";
+                p += `STUL: ${activeTable} | ${now}\n`;
+                p += "--------------------------------
