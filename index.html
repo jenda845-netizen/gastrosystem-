@@ -3,146 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>POS | Samsung S23+</title>
+    <title>POS S23+</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: sans-serif; -webkit-tap-highlight-color: transparent; }
-        .grid-tables { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .grid-menu { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        body { font-family: sans-serif; }
+        @media print {
+            body * { visibility: hidden; }
+            #print-section, #print-section * { visibility: visible; }
+            #print-section { position: absolute; left: 0; top: 0; width: 58mm; }
+        }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen">
+<body class="bg-gray-100 min-h-screen">
 
-    <div id="app" class="max-w-md mx-auto bg-white min-h-screen flex flex-col shadow-2xl">
-        
-        <header class="bg-slate-900 text-white p-5 shadow-md">
-            <h1 class="font-black text-xl tracking-widest uppercase">Gastro POS</h1>
-            <p class="text-[10px] text-green-400 font-bold italic">PROPOJENO PŘES RAWBT</p>
+    <div id="app" class="max-w-md mx-auto bg-white min-h-screen flex flex-col shadow-lg">
+        <header class="bg-slate-900 text-white p-5 flex justify-between items-center">
+            <h1 class="font-black text-xl tracking-tighter uppercase">Gastro POS</h1>
+            <span class="text-[10px] bg-blue-500 px-2 py-1 rounded">S23+ MODE</span>
         </header>
 
-        <div id="section-tables" class="p-6">
-            <h2 class="text-slate-400 font-bold mb-4 uppercase text-xs tracking-widest text-center">Vyberte číslo stolu</h2>
-            <div class="grid-tables" id="table-grid"></div>
-        </div>
-
-        <div id="section-pos" class="hidden flex-1 flex flex-col p-5 bg-white">
-            <div class="flex justify-between items-center mb-6">
-                <button onclick="showTables()" class="bg-slate-200 px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-tighter">← Zpět</button>
-                <span id="label-table" class="bg-slate-900 text-white px-6 py-2 rounded-xl font-black shadow-lg uppercase tracking-widest text-sm">STŮL</span>
+        <div id="section-tables" class="p-4 grid grid-cols-4 gap-2">
             </div>
 
-            <div class="flex-1 overflow-y-auto pr-1">
-                <div class="grid-menu mb-8" id="menu-grid"></div>
-                
-                <h3 class="font-bold border-b border-slate-200 pb-1 mb-3 text-[10px] text-slate-400 uppercase tracking-widest text-center italic">Aktuální položky</h3>
-                <div id="cart-list" class="space-y-3 text-sm font-semibold text-slate-700"></div>
-            </div>
-
-            <div class="pt-6 mt-4 border-t-4 border-double border-slate-100">
-                <div class="flex justify-between items-center mb-5 px-2">
-                    <span class="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Celková suma</span>
-                    <span class="text-3xl font-black text-slate-900"><span id="total-price">0</span> Kč</span>
+        <div id="section-pos" class="hidden flex-1 p-4 flex flex-col bg-white">
+            <button onclick="location.reload()" class="text-xs font-bold text-gray-400 mb-4 uppercase">← Zpět na stoly</button>
+            <h2 id="label-table" class="text-2xl font-black mb-4">STŮL</h2>
+            <div id="menu-grid" class="grid grid-cols-2 gap-3 mb-6"></div>
+            <div id="cart-list" class="flex-1 border-t pt-4 space-y-2 text-sm italic"></div>
+            
+            <div class="border-t-2 border-black pt-4 mt-4">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="font-bold">CELKEM</span>
+                    <span class="text-3xl font-black" id="total-price">0</span>
                 </div>
-                <button onclick="printWithRawBT()" class="w-full bg-blue-600 text-white py-6 rounded-3xl font-black text-xl shadow-xl shadow-blue-100 active:bg-blue-700 active:scale-[0.97] transition-all uppercase">
-                    Zaplatit & Tisknout
+                <button onclick="printReceipt()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg active:scale-95 transition-all">
+                    ZAPLATIT & TISKNOUT
                 </button>
             </div>
         </div>
     </div>
 
+    <div id="print-section" class="hidden text-black p-2 font-mono text-sm leading-tight">
+        <center>
+            <b style="font-size: 1.2em;">MOJE RESTAURACE</b><br>
+            --------------------------------<br>
+            STŮL: <span id="p-table"></span><br>
+            <span id="p-time"></span><br>
+            --------------------------------<br>
+        </center>
+        <div id="p-items"></div>
+        --------------------------------<br>
+        <center>
+            <b style="font-size: 1.4em;">CELKEM: <span id="p-total"></span> Kč</b><br>
+            --------------------------------<br>
+            Děkujeme za návštěvu!
+        </center>
+    </div>
+
     <script>
-        const menuItems = [
-            { name: "Pivo 11°", price: 45 },
-            { name: "Pivo 12°", price: 52 },
-            { name: "Kofola 0.5", price: 38 },
-            { name: "Gulášovka", price: 65 },
-            { name: "Smažák", price: 185 },
-            { name: "Hovězí Guláš", price: 175 },
-            { name: "Espresso", price: 48 },
-            { name: "Turecká káva", price: 35 }
+        const menu = [
+            { name: "Pivo 11°", price: 45 }, { name: "Pivo 12°", price: 52 },
+            { name: "Kofola", price: 38 }, { name: "Smažák", price: 185 },
+            { name: "Guláš", price: 175 }, { name: "Espresso", price: 48 }
         ];
-
         let cart = [];
-        let activeTable = null;
+        let table = 0;
 
-        // Generování stolů
-        const tableGrid = document.getElementById('table-grid');
+        // Stoly
+        const tg = document.getElementById('section-tables');
         for(let i=1; i<=12; i++) {
-            const btn = document.createElement('div');
-            btn.className = "bg-white border-2 border-slate-100 h-16 flex items-center justify-center rounded-2xl font-black text-slate-800 shadow-sm active:bg-blue-600 active:text-white active:scale-90 transition-all cursor-pointer";
-            btn.innerText = i;
-            btn.onclick = () => openTable(i);
-            tableGrid.appendChild(btn);
+            tg.innerHTML += `<div onclick="openT(${i})" class="bg-white border h-14 flex items-center justify-center rounded-xl font-bold shadow-sm active:bg-blue-600 active:text-white">${i}</div>`;
         }
 
-        // Generování jídel
-        const menuGrid = document.getElementById('menu-grid');
-        menuItems.forEach(item => {
-            const btn = document.createElement('div');
-            btn.className = "bg-slate-50 p-5 rounded-2xl border border-slate-100 flex flex-col items-center justify-center text-center active:bg-blue-50 active:scale-95 transition-all";
-            btn.innerHTML = `<span class="text-[11px] font-bold text-slate-400 uppercase mb-1">${item.name}</span><span class="text-slate-900 font-black text-lg">${item.price} Kč</span>`;
-            btn.onclick = () => { cart.push(item); updateUI(); };
-            menuGrid.appendChild(btn);
+        // Menu
+        const mg = document.getElementById('menu-grid');
+        menu.forEach(i => {
+            mg.innerHTML += `<div onclick="add('${i.name}', ${i.price})" class="bg-gray-50 p-4 rounded-xl border text-center active:scale-95 transition-all"><div class="text-[10px] uppercase font-bold text-gray-400">${i.name}</div><div class="font-black">${i.price} Kč</div></div>`;
         });
 
-        function openTable(n) {
-            activeTable = n;
+        function openT(n) {
+            table = n;
             document.getElementById('label-table').innerText = "STŮL " + n;
             document.getElementById('section-tables').classList.add('hidden');
             document.getElementById('section-pos').classList.remove('hidden');
         }
 
-        function showTables() {
-            document.getElementById('section-tables').classList.remove('hidden');
-            document.getElementById('section-pos').classList.add('hidden');
-            cart = []; updateUI();
+        function add(n, p) {
+            cart.push({n, p});
+            draw();
         }
 
-        function updateUI() {
+        function draw() {
             const list = document.getElementById('cart-list');
-            const total = document.getElementById('total-price');
-            list.innerHTML = cart.length === 0 ? '<p class="text-slate-300 italic text-center py-4">Prázdný stůl</p>' : 
-                cart.map(i => `<div class="flex justify-between border-b border-slate-50 pb-1 italic"><span>${i.name}</span><span class="font-bold text-blue-600">${i.price} Kč</span></div>`).join('');
-            total.innerText = cart.reduce((s, i) => s + i.price, 0);
+            list.innerHTML = cart.map(i => `<div class="flex justify-between"><span>${i.n}</span><b>${i.p} Kč</b></div>`).join('');
+            document.getElementById('total-price').innerText = cart.reduce((s, i) => s + i.p, 0);
         }
 
-        function removeAccents(str) {
-            return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        }
-
-        function printWithRawBT() {
-            if (cart.length === 0) return;
-
-            const now = new Date().toLocaleString('cs-CZ');
-            const total = document.getElementById('total-price').innerText;
-
-            // Čistý textový formát (RawBT si formátování střed/vlevo vyřeší samo v nastavení profilu)
-            let text = "MOJE RESTAURACE\n";
-            text += "--------------------------------\n";
-            text += "STUL: " + activeTable + "\n";
-            text += "DATUM: " + now + "\n";
-            text += "--------------------------------\n";
-
-            cart.forEach(item => {
-                let name = removeAccents(item.name).substring(0, 20);
-                text += name.padEnd(22) + item.price.toString().padStart(4) + " Kc\n";
-            });
-
-            text += "--------------------------------\n";
-            text += "CELKEM: " + total + " Kc\n";
-            text += "--------------------------------\n";
-            text += "DEKUJEME ZA NAVSTEVU!\n\n\n\n";
-
-            // Převod na Base64 (bezpečný přenos)
-            const base64Data = btoa(unescape(encodeURIComponent(text)));
-
-            // PŘÍMÉ OTEVŘENÍ RAWBT PŘES SCHÉMA
-            window.location.href = "rawbt:base64," + base64Data;
+        function printReceipt() {
+            if(cart.length === 0) return;
             
-            setTimeout(() => {
-                showTables();
-            }, 1000);
+            // Naplnění tiskové šablony
+            document.getElementById('p-table').innerText = table;
+            document.getElementById('p-time').innerText = new Date().toLocaleString('cs-CZ');
+            document.getElementById('p-total').innerText = document.getElementById('total-price').innerText;
+            document.getElementById('p-items').innerHTML = cart.map(i => `<div style="display:flex; justify-content:space-between;"><span>${i.n}</span><span>${i.p} Kč</span></div>`).join('');
+            
+            // Spuštění systémového tisku
+            window.print();
         }
     </script>
 </body>
 </html>
+
