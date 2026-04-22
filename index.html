@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI POS | Smart Restaurant</title>
+    <title>AI POS | Samsung S23+</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: sans-serif; -webkit-tap-highlight-color: transparent; }
@@ -15,73 +15,77 @@
 
     <div id="app" class="max-w-md mx-auto bg-white min-h-screen shadow-xl flex flex-col">
         
-        <header class="bg-slate-800 text-white p-4 shadow-lg flex justify-between items-center">
-            <h1 class="font-black text-xl tracking-tighter">MOJE RESTAURACE</h1>
-            <div id="status" class="text-[10px] bg-red-500 px-2 py-1 rounded">OFFLINE TISK</div>
+        <header class="bg-slate-900 text-white p-4 shadow-lg flex justify-between items-center">
+            <div>
+                <h1 class="font-black text-xl tracking-tighter uppercase">Gastro Systém</h1>
+                <p id="status-text" class="text-[10px] text-gray-400 italic">Připraven k připojení</p>
+            </div>
+            <div id="status-dot" class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
         </header>
 
         <div id="section-tables" class="p-4">
-            <h2 class="text-gray-500 font-bold mb-3 uppercase text-xs">Obsluha stolů</h2>
+            <h2 class="text-gray-500 font-bold mb-3 uppercase text-xs tracking-widest">Aktivní stoly</h2>
             <div class="grid-tables" id="table-grid"></div>
         </div>
 
         <div id="section-pos" class="hidden flex-1 flex flex-col p-4 bg-gray-50">
             <div class="flex justify-between items-center mb-4">
-                <button onclick="showTables()" class="text-slate-500 font-bold">← ZPĚT</button>
-                <span id="label-table" class="bg-slate-800 text-white px-4 py-1 rounded-full font-bold">STŮL 1</span>
+                <button onclick="showTables()" class="text-slate-500 font-bold p-2">← ZPĚT</button>
+                <span id="label-table" class="bg-slate-900 text-white px-6 py-2 rounded-xl font-black shadow-md">STŮL</span>
             </div>
 
-            <div class="flex-1 overflow-y-auto">
+            <div class="flex-1 overflow-y-auto pr-1">
                 <div class="grid-menu mb-6" id="menu-grid"></div>
                 
-                <h3 class="font-bold border-b-2 border-slate-200 pb-1 mb-2 text-sm uppercase">Položky v objednávce</h3>
-                <div id="cart-list" class="space-y-2 text-sm"></div>
+                <h3 class="font-bold border-b-2 border-slate-200 pb-1 mb-2 text-[10px] text-gray-400 uppercase">Objednávka</h3>
+                <div id="cart-list" class="space-y-2 text-sm font-medium"></div>
             </div>
 
             <div class="pt-4 mt-2 border-t-2 border-dashed border-gray-300">
                 <div class="flex justify-between items-center mb-4">
-                    <span class="text-gray-500 font-bold">CELKEM K ÚHRADĚ</span>
-                    <span class="text-2xl font-black text-slate-800"><span id="total-price">0</span> Kč</span>
+                    <span class="text-gray-400 font-bold text-xs uppercase">Celkem</span>
+                    <span class="text-3xl font-black text-slate-900"><span id="total-price">0</span> Kč</span>
                 </div>
-                <button onclick="processPrint()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-lg shadow-blue-200 shadow-lg active:scale-95 transition-all">
-                    ZAPLATIT A TISKNOUT
+                <button onclick="processPrint()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-xl shadow-blue-200 shadow-xl active:scale-95 transition-all uppercase tracking-tight">
+                    Zaplatit a Tisknout
                 </button>
             </div>
         </div>
     </div>
 
     <script>
+        // DATA MENU
         const menu = [
             { id: 1, name: "Pivo 11°", price: 45 },
             { id: 2, name: "Pivo 12°", price: 52 },
             { id: 3, name: "Kofola 0.5", price: 38 },
-            { id: 4, name: "Domácí limo", price: 55 },
-            { id: 5, name: "Gulášovku", price: 65 },
-            { id: 6, name: "Smažák", price: 185 },
-            { id: 7, name: "Guláš", price: 175 },
-            { id: 8, name: "Espresso", price: 48 }
+            { id: 4, name: "Gulášovku", price: 65 },
+            { id: 5, name: "Smažák", price: 185 },
+            { id: 6, name: "Guláš", price: 175 },
+            { id: 7, name: "Espresso", price: 48 },
+            { id: 8, name: "Turecká káva", price: 35 }
         ];
 
         let cart = [];
         let activeTable = null;
-        let printer = null;
+        let printerCharacteristic = null;
 
-        // GENERUJ STOLY
+        // INICIALIZACE STOLŮ
         const tableGrid = document.getElementById('table-grid');
         for(let i=1; i<=12; i++) {
             const btn = document.createElement('div');
-            btn.className = "bg-white border-2 border-gray-200 h-16 flex items-center justify-center rounded-xl font-black text-slate-700 active:bg-blue-600 active:text-white transition-colors cursor-pointer";
+            btn.className = "bg-white border border-gray-200 h-16 flex items-center justify-center rounded-2xl font-black text-slate-800 shadow-sm active:bg-blue-600 active:text-white transition-all cursor-pointer";
             btn.innerText = i;
             btn.onclick = () => openTable(i);
             tableGrid.appendChild(btn);
         }
 
-        // GENERUJ MENU
+        // INICIALIZACE MENU
         const menuGrid = document.getElementById('menu-grid');
         menu.forEach(item => {
             const btn = document.createElement('div');
-            btn.className = "bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center active:scale-95 transition-transform";
-            btn.innerHTML = `<span class="text-xs font-bold text-gray-800 uppercase">${item.name}</span><span class="text-blue-600 font-black">${item.price},-</span>`;
+            btn.className = "bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center active:bg-blue-50 active:scale-95 transition-all";
+            btn.innerHTML = `<span class="text-[11px] font-bold text-gray-500 uppercase mb-1">${item.name}</span><span class="text-slate-900 font-black text-lg">${item.price} Kč</span>`;
             btn.onclick = () => addToCart(item);
             menuGrid.appendChild(btn);
         });
@@ -108,8 +112,8 @@
         function updateUI() {
             const list = document.getElementById('cart-list');
             const total = document.getElementById('total-price');
-            list.innerHTML = cart.length === 0 ? '<p class="text-gray-400 italic">Zatím nic...</p>' : 
-                cart.map((i, idx) => `<div class="flex justify-between"><span>${i.name}</span><span class="font-bold">${i.price} Kč</span></div>`).join('');
+            list.innerHTML = cart.length === 0 ? '<p class="text-gray-300 italic text-center py-4">Košík je prázdný</p>' : 
+                cart.map(i => `<div class="flex justify-between border-b border-gray-100 pb-1"><span>${i.name}</span><span class="font-bold text-blue-600">${i.price} Kč</span></div>`).join('');
             total.innerText = cart.reduce((s, i) => s + i.price, 0);
         }
 
@@ -117,27 +121,35 @@
             return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         }
 
+        // TISKÁRNA - OPRAVENÁ LOGIKA
         async function connect() {
             try {
+                // acceptAllDevices zajistí, že uvidíš všechna zapnutá BT zařízení
                 const device = await navigator.bluetooth.requestDevice({
-                    filters: [{ namePrefix: 'MPT' }, { namePrefix: 'Bluetooth' }],
-                    optionalServices: [0xFF00]
+                    acceptAllDevices: true,
+                    optionalServices: [0xFF00, '0000ff00-0000-1000-8000-00805f9b34fb'] 
                 });
+
+                document.getElementById('status-text').innerText = "PŘIPOJOVÁNÍ...";
                 const server = await device.gatt.connect();
                 const service = await server.getPrimaryService(0xFF00);
-                printer = await service.getCharacteristic(0xFF01);
-                document.getElementById('status').innerText = "TISK PŘIPRAVEN";
-                document.getElementById('status').classList.replace('bg-red-500', 'bg-green-500');
+                printerCharacteristic = await service.getCharacteristic(0xFF01);
+                
+                document.getElementById('status-text').innerText = "TISKÁRNA PŘIPOJENA";
+                document.getElementById('status-dot').classList.replace('bg-red-500', 'bg-green-500');
                 return true;
             } catch (e) {
-                alert("Bluetooth: " + e.message);
+                console.error(e);
+                alert("CHYBA: " + e.message);
+                document.getElementById('status-text').innerText = "CHYBA PŘIPOJENÍ";
                 return false;
             }
         }
 
         async function processPrint() {
             if (cart.length === 0) return;
-            if (!printer) {
+            
+            if (!printerCharacteristic) {
                 const isConnected = await connect();
                 if (!isConnected) return;
             }
@@ -146,13 +158,13 @@
                 const now = new Date().toLocaleString('cs-CZ');
                 const total = document.getElementById('total-price').innerText;
                 
-                let p = "\x1B\x40"; // Init
-                p += "\x1B\x61\x01"; // Center
-                p += "MOJE RESTAURACE\n";
+                let p = "\x1B\x40"; // Inicializace
+                p += "\x1B\x61\x01"; // Zarovnání na střed
+                p += "RESTAURACE POS\n";
                 p += "--------------------------------\n";
                 p += `STUL: ${activeTable} | ${now}\n`;
                 p += "--------------------------------\n";
-                p += "\x1B\x61\x00"; // Left
+                p += "\x1B\x61\x00"; // Zarovnání vlevo
                 
                 cart.forEach(i => {
                     let name = removeAccents(i.name).substring(0, 20);
@@ -160,18 +172,18 @@
                 });
 
                 p += "--------------------------------\n";
-                p += "\x1B\x61\x01\x1B\x21\x10"; // Center + Double height
+                p += "\x1B\x61\x01"; // Střed
                 p += `CELKEM: ${total} Kc\n`;
-                p += "\x1B\x21\x00"; // Normal size
                 p += "--------------------------------\n";
                 p += "DEKUJEME ZA NAVSTEVU!\n\n\n\n\n";
 
-                await printer.writeValue(new TextEncoder().encode(p));
-                alert("ZAPLACENO A VYTIŠTĚNO");
+                await printerCharacteristic.writeValue(new TextEncoder().encode(p));
+                alert("VYTIŠTĚNO");
                 showTables();
             } catch (e) {
-                alert("Chyba tisku: " + e.message);
-                printer = null;
+                alert("Ztraceno spojení: " + e.message);
+                printerCharacteristic = null;
+                document.getElementById('status-dot').classList.replace('bg-green-500', 'bg-red-500');
             }
         }
     </script>
