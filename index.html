@@ -151,4 +151,29 @@
                 p += "MOJE RESTAURACE\n";
                 p += "--------------------------------\n";
                 p += `STUL: ${activeTable} | ${now}\n`;
-                p += "--------------------------------
+                p += "--------------------------------\n";
+                p += "\x1B\x61\x00"; // Left
+                
+                cart.forEach(i => {
+                    let name = removeAccents(i.name).substring(0, 20);
+                    p += name.padEnd(22) + i.price.toString().padStart(4) + " Kc\n";
+                });
+
+                p += "--------------------------------\n";
+                p += "\x1B\x61\x01\x1B\x21\x10"; // Center + Double height
+                p += `CELKEM: ${total} Kc\n`;
+                p += "\x1B\x21\x00"; // Normal size
+                p += "--------------------------------\n";
+                p += "DEKUJEME ZA NAVSTEVU!\n\n\n\n\n";
+
+                await printer.writeValue(new TextEncoder().encode(p));
+                alert("ZAPLACENO A VYTIŠTĚNO");
+                showTables();
+            } catch (e) {
+                alert("Chyba tisku: " + e.message);
+                printer = null;
+            }
+        }
+    </script>
+</body>
+</html>
