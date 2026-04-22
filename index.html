@@ -1,107 +1,66 @@
 <!DOCTYPE html>
-<html lang="cs">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>POS OBRÁZEK</title>
+    <title>POKLADNA</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-slate-100 p-4">
+    <div class="max-w-xs mx-auto bg-white p-6 shadow-xl rounded-3xl">
+        <h1 class="text-center font-black text-2xl mb-6 tracking-tighter">GASTRO POS</h1>
+        
+        <div class="grid grid-cols-1 gap-3 mb-8">
+            <button onclick="add('PIVO', 45)" class="bg-blue-600 text-white py-4 rounded-2xl font-bold active:scale-95 transition-all shadow-md">PIVO 45,-</button>
+            <button onclick="add('SMAZAK', 185)" class="bg-blue-600 text-white py-4 rounded-2xl font-bold active:scale-95 transition-all shadow-md">SMAŽÁK 185,-</button>
+            <button onclick="add('KAVA', 48)" class="bg-blue-600 text-white py-4 rounded-2xl font-bold active:scale-95 transition-all shadow-md">KÁVA 48,-</button>
+        </div>
 
-    <div id="app" class="max-w-md mx-auto bg-white min-h-screen flex flex-col shadow-lg">
-        <header class="bg-slate-900 text-white p-5 flex justify-between items-center">
-            <h1 class="font-black text-xl uppercase tracking-tighter">Gastro POS</h1>
-            <span class="text-[10px] bg-red-600 px-2 py-1 rounded font-bold italic text-white">IMAGE MODE</span>
-        </header>
-
-        <div id="section-tables" class="p-4 grid grid-cols-4 gap-2"></div>
-
-        <div id="section-pos" class="hidden flex-1 p-4 flex flex-col bg-white">
-            <button onclick="location.reload()" class="text-xs font-bold text-gray-400 mb-4 uppercase">← ZPĚT</button>
-            <div id="menu-grid" class="grid grid-cols-2 gap-3 mb-6"></div>
-            <div id="cart-list" class="flex-1 border-t pt-4 space-y-2 text-sm italic font-bold"></div>
-            
-            <div class="border-t-2 border-black pt-4 mt-4">
-                <div class="flex justify-between items-center mb-4">
-                    <span class="font-bold uppercase text-xs">Celkem</span>
-                    <span class="text-3xl font-black"><span id="total-price">0</span> Kč</span>
-                </div>
-                <button onclick="generateAndPrint()" class="w-full bg-blue-600 text-white py-6 rounded-2xl font-black text-xl shadow-xl active:scale-95 transition-all">
-                    VYTISKNOUT ÚČTENKU
-                </button>
+        <div id="kosik" class="border-t-2 border-dashed border-gray-200 pt-4 font-mono text-sm mb-4 min-h-[100px]">
             </div>
-        </div>
-    </div>
 
-    <div style="position: absolute; left: -9999px;">
-        <div id="receipt-capture" style="width: 380px; background: white; padding: 20px; color: black; font-family: Arial, sans-serif;">
-            <center>
-                <h1 style="font-size: 28px; margin: 0;">MOJE RESTAURACE</h1>
-                <p style="border-bottom: 2px solid black; padding-bottom: 10px;">
-                    STŮL: <span id="r-table"></span><br>
-                    <span id="r-time"></span>
-                </p>
-            </center>
-            <div id="r-items" style="font-size: 20px; line-height: 1.5;"></div>
-            <p style="border-top: 2px solid black; padding-top: 10px; font-size: 26px; font-weight: bold; display: flex; justify-content: space-between;">
-                <span>CELKEM</span>
-                <span><span id="r-total">0</span> Kč</span>
-            </p>
-            <center><p style="font-size: 16px; margin-top: 20px;">Děkujeme za návštěvu!</p></center>
+        <div class="text-2xl font-black text-right mb-8 border-t-2 pt-2">
+            CELKEM: <span id="total">0</span> Kč
         </div>
+
+        <button onclick="tiskni()" class="w-full bg-black text-white py-6 rounded-2xl font-black text-xl shadow-lg active:bg-gray-800 transition-all uppercase tracking-widest">
+            Vytisknout
+        </button>
     </div>
 
     <script>
-        const menu = [
-            { n: "Pivo 11", p: 45 }, { n: "Pivo 12", p: 52 },
-            { n: "Kofola", p: 38 }, { n: "Smažák", p: 185 },
-            { n: "Guláš", p: 175 }, { n: "Espresso", p: 48 }
-        ];
-        let cart = [];
-        let tableNum = 0;
-
-        // Generování stolů
-        const tg = document.getElementById('section-tables');
-        for(let i=1; i<=12; i++) {
-            tg.innerHTML += `<div onclick="openT(${i})" class="bg-white border h-14 flex items-center justify-center rounded-xl font-bold shadow-sm active:bg-blue-600 active:text-white transition-colors">${i}</div>`;
-        }
-
-        // Generování menu
-        const mg = document.getElementById('menu-grid');
-        menu.forEach(i => {
-            mg.innerHTML += `<div onclick="add('${i.n}', ${i.p})" class="bg-gray-50 p-4 rounded-xl border text-center active:scale-95"><div class="text-[10px] uppercase font-bold text-gray-400">${i.n}</div><div class="font-black">${i.p} Kč</div></div>`;
-        });
-
-        function openT(n) {
-            tableNum = n;
-            document.getElementById('section-tables').classList.add('hidden');
-            document.getElementById('section-pos').classList.remove('hidden');
-        }
+        let items = [];
 
         function add(n, p) {
-            cart.push({n, p});
-            document.getElementById('cart-list').innerHTML = cart.map(i => `<div class="flex justify-between"><span>${i.n}</span><b>${i.p} Kč</b></div>`).join('');
-            document.getElementById('total-price').innerText = cart.reduce((s, i) => s + i.p, 0);
+            items.push({n, p});
+            updateUI();
         }
 
-        async function generateAndPrint() {
-            if(cart.length === 0) return;
+        function updateUI() {
+            const kosik = document.getElementById('kosik');
+            kosik.innerHTML = items.map(i => `<div class="flex justify-between"><span>${i.n}</span><span>${i.p},-</span></div>`).join('');
+            document.getElementById('total').innerText = items.reduce((s, i) => s + i.p, 0);
+        }
+
+        function tiskni() {
+            if(items.length === 0) return;
+            const suma = document.getElementById('total').innerText;
             
-            // 1. Naplnit data
-            document.getElementById('r-table').innerText = tableNum;
-            document.getElementById('r-time').innerText = new Date().toLocaleString('cs-CZ');
-            document.getElementById('r-total').innerText = document.getElementById('total-price').innerText;
-            document.getElementById('r-items').innerHTML = cart.map(i => `<div style="display:flex; justify-content:space-between;"><span>${i.n}</span><span>${i.p} Kč</span></div>`).join('');
+            // ČISTÝ TEXT PRO TISKÁRNU (bez formátování a diakritiky)
+            let txt = "\n";
+            txt += "      RESTAURACE\n";
+            txt += "------------------------\n";
+            items.forEach(i => {
+                txt += i.n.padEnd(15) + i.p.toString().padStart(4) + " Kc\n";
+            });
+            txt += "------------------------\n";
+            txt += "CELKEM: " + suma + " Kc\n";
+            txt += "\n\n\n\n"; // Důležité: volné řádky, aby šla účtenka utrhnout
 
-            // 2. Vyfotit účtenku (převod na obrázek)
-            const capture = document.getElementById('receipt-capture');
-            const canvas = await html2canvas(capture);
-            const dataUrl = canvas.toDataURL("image/png");
-            const base64Image = dataUrl.split(',')[1];
-
-            // 3. Poslat do RawBT jako obrázek (intent)
-            window.location.href = "intent:#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;S.base64=" + base64Image + ";end;";
+            // ODESLÁNÍ DO RawBT (nejstabilnější cesta)
+            // Použijeme prostý text kódovaný do Base64
+            const b64 = btoa(txt);
+            window.location.href = "intent:#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;S.base64=" + b64 + ";end;";
         }
     </script>
 </body>
