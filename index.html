@@ -1,246 +1,53 @@
-// RESTAURANT SYSTEM SaaS FINAL + STRIPE FULL INTEGRATION
-// Frontend (React) + Backend (Node.js Express) + Stripe Checkout
-
-
-// ================= BACKEND =================
-// server.js
-
-
-import express from "express";
-import cors from "cors";
-import Stripe from "stripe";
-
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-
-const stripe = new Stripe("YOUR_STRIPE_SECRET_KEY");
-
-
-app.post("/create-checkout-session", async (req, res) => {
-const { items } = req.body;
-
-
-const session = await stripe.checkout.sessions.create({
-payment_method_types: ["card"],
-line_items: items.map(item => ({
-price_data: {
-currency: "czk",
-product_data: {
-name: item.name,
-},
-unit_amount: item.price * 100,
-},
-quantity: 1,
-})),
-mode: "payment",
-success_url: "http://localhost:3000/success",
-cancel_url: "http://localhost:3000/cancel",
-});
-
-
-res.json({ url: session.url });
-});
-
-
-app.listen(3001, () => console.log("Server running on port 3001"));
-
-
-// ================= FRONTEND =================
-
-
-import React, { useState } from "react";
-
-
-export default function QRPage() {
-const [cart, setCart] = useState([]);
-
-
-const addItem = (item) => {
-setCart([...cart, item]);
-};
-
-
-const checkout = async () => {
-const res = await fetch("http://localhost:3001/create-checkout-session", {
-method: "POST",
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify({ items: cart })
-});
-
-
-const data = await res.json();
-window.location.href = data.url;
-
-
-
-};
-
-
-return (
-
-
-
-QR Order
-
-
-
-  <button onClick={() => addItem({ name: "Burger", price: 150 })}>
-    Add Burger
-  </button>
-
-  <button onClick={() => addItem({ name: "Pizza", price: 200 })}>
-    Add Pizza
-  </button>
-
-  <div className="mt-4">
-    <h2>Cart</h2>
-    {cart.map((c, i) => (
-      <div key={i}>{c.name} - {c.price} Kč</div>
-    ))}
-  </div>
-
-  <button onClick={checkout} className="mt-4 bg-green-500 text-white px-4 py-2">
-    Pay with Card
-  </button>
-</div>
-
-
-
-);
-}
-
-
-// ================= DEPLOY GUIDE =================
-
-
-/*
-
-
-
-
-Backend deploy (Render.com or Railway.app)
-
-
-
-
-
-
-upload server.js
-
-
-add STRIPE_SECRET_KEY env variable
-
-
-run: node server.js
-
-
-
-
-
-
-Frontend deploy (Vercel)
-
-
-
-
-
-
-upload React app
-
-
-set API URL to your backend URL
-
-
-
-
-
-
-Firebase
-
-
-
-
-
-
-enable Auth (email/password)
-
-
-create Firestore collections:
-
-
-
-users
-
-
-tables
-
-
-orders
-
-
-inventory
-
-
-
-
-
-
-
-
-
-
-Stripe
-
-
-
-
-
-
-create account
-
-
-get secret + publishable key
-
-
-enable payments
-
-
-
-
-
-
-Domain
-
-
-
-
-
-
-connect your domain (např. tvojedomena.cz)
-
-
-
-
-
-
-QR kódy
-
-
-
-
-
-
-generuj URL: https://tvojeapp.cz/order/1
-
-
-vytiskni a dej na stoly
-
-
-
-
-DONE ✅
-*/
-
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gastro POS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-4">
+    <div class="max-w-md mx-auto bg-white rounded-2xl shadow-xl p-6 mt-10">
+        <h1 class="text-3xl font-black text-blue-600 text-center mb-8">POS SYSTÉM</h1>
+        
+        <div class="space-y-4">
+            <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                <span class="font-bold text-lg">Pivo Kozel 11</span>
+                <span class="text-blue-600 font-bold">45 Kč</span>
+            </div>
+        </div>
+
+        <button id="printBtn" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg active:scale-95 transition-transform mt-10">
+            TISKNOUT TEST (MPT-II)
+        </button>
+        
+        <p id="status" class="text-center text-xs mt-4 text-gray-400 text-uppercase tracking-widest">Připraveno k tisku</p>
+    </div>
+
+    <script>
+        document.getElementById('printBtn').addEventListener('click', async () => {
+            const status = document.getElementById('status');
+            try {
+                status.innerText = "HLEDÁM TISKÁRNU...";
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ namePrefix: 'MPT' }, { namePrefix: 'Bluetooth' }],
+                    optionalServices: [0xFF00]
+                });
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService(0xFF00);
+                const char = await service.getCharacteristic(0xFF01);
+                
+                // Jednoduchý ESC/POS příkaz pro tisk
+                const encoder = new TextEncoder();
+                const data = encoder.encode("\x1B\x40\x1B\x61\x01\nTEST TISKU OK\nS23 PLUS CONNECTED\n\n\n\n\n");
+                
+                await char.writeValue(data);
+                status.innerText = "VYTIŠTĚNO! ✅";
+            } catch (e) {
+                console.error(e);
+                status.innerText = "CHYBA: " + e.message;
+            }
+        });
+    </script>
+</body>
+</html>
