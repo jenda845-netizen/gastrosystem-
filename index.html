@@ -2,118 +2,106 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gastro POS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>POS OBRÁZEK</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Styl pro tiskárnu - černé na bílém, bez zbytečností */
-        @media print {
-            body * { visibility: hidden; }
-            #receipt { 
-                visibility: visible; 
-                position: absolute; 
-                left: 0; 
-                top: 0; 
-                width: 100%;
-                color: black !important;
-                background: white !important;
-                font-family: 'Courier New', Courier, monospace;
-            }
-            .no-print { display: none; }
-        }
-    </style>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100 min-h-screen">
 
-    <div class="max-w-md mx-auto bg-white min-h-screen shadow-lg no-print">
-        <header class="bg-black text-white p-6 text-center">
-            <h1 class="text-2xl font-bold tracking-tighter">MOJE POKLADNA</h1>
+    <div id="app" class="max-w-md mx-auto bg-white min-h-screen flex flex-col shadow-lg">
+        <header class="bg-slate-900 text-white p-5 flex justify-between items-center">
+            <h1 class="font-black text-xl uppercase tracking-tighter">Gastro POS</h1>
+            <span class="text-[10px] bg-red-600 px-2 py-1 rounded font-bold italic text-white">IMAGE MODE</span>
         </header>
 
-        <div id="tables" class="p-4 grid grid-cols-4 gap-2">
-            </div>
+        <div id="section-tables" class="p-4 grid grid-cols-4 gap-2"></div>
 
-        <div id="pos" class="hidden p-4 flex flex-col min-h-[80vh]">
-            <button onclick="location.reload()" class="mb-4 text-gray-400 font-bold uppercase text-xs">← Zpět na stoly</button>
-            <h2 id="table-label" class="text-3xl font-black mb-6">STŮL</h2>
+        <div id="section-pos" class="hidden flex-1 p-4 flex flex-col bg-white">
+            <button onclick="location.reload()" class="text-xs font-bold text-gray-400 mb-4 uppercase">← ZPĚT</button>
+            <div id="menu-grid" class="grid grid-cols-2 gap-3 mb-6"></div>
+            <div id="cart-list" class="flex-1 border-t pt-4 space-y-2 text-sm italic font-bold"></div>
             
-            <div id="menu" class="grid grid-cols-2 gap-2 mb-8">
+            <div class="border-t-2 border-black pt-4 mt-4">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="font-bold uppercase text-xs">Celkem</span>
+                    <span class="text-3xl font-black"><span id="total-price">0</span> Kč</span>
                 </div>
-
-            <div id="cart" class="flex-1 border-t pt-4 text-sm font-mono mb-4">
-                </div>
-
-            <div class="border-t-4 border-black pt-4">
-                <div class="flex justify-between text-2xl font-black mb-6">
-                    <span>CELKEM</span>
-                    <span><span id="total">0</span> Kč</span>
-                </div>
-                <button onclick="doPrint()" class="w-full bg-blue-700 text-white py-6 rounded-2xl font-black text-xl shadow-2xl active:bg-blue-800">
-                    VYDANÁ ÚČTENKA
+                <button onclick="generateAndPrint()" class="w-full bg-blue-600 text-white py-6 rounded-2xl font-black text-xl shadow-xl active:scale-95 transition-all">
+                    VYTISKNOUT ÚČTENKU
                 </button>
             </div>
         </div>
     </div>
 
-    <div id="receipt" class="p-2 text-black" style="width: 58mm; font-size: 12px; line-height: 1.2;">
-        <div style="text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 5px;">MOJE RESTAURACE</div>
-        <div style="text-align: center; border-bottom: 1px dashed black; padding-bottom: 5px; margin-bottom: 5px;">
-            STŮL: <span id="r-table"></span><br>
-            <span id="r-time"></span>
+    <div style="position: absolute; left: -9999px;">
+        <div id="receipt-capture" style="width: 380px; background: white; padding: 20px; color: black; font-family: Arial, sans-serif;">
+            <center>
+                <h1 style="font-size: 28px; margin: 0;">MOJE RESTAURACE</h1>
+                <p style="border-bottom: 2px solid black; padding-bottom: 10px;">
+                    STŮL: <span id="r-table"></span><br>
+                    <span id="r-time"></span>
+                </p>
+            </center>
+            <div id="r-items" style="font-size: 20px; line-height: 1.5;"></div>
+            <p style="border-top: 2px solid black; padding-top: 10px; font-size: 26px; font-weight: bold; display: flex; justify-content: space-between;">
+                <span>CELKEM</span>
+                <span><span id="r-total">0</span> Kč</span>
+            </p>
+            <center><p style="font-size: 16px; margin-top: 20px;">Děkujeme za návštěvu!</p></center>
         </div>
-        <div id="r-items" style="margin-bottom: 5px;"></div>
-        <div style="border-top: 1px dashed black; padding-top: 5px; font-weight: bold; display: flex; justify-content: space-between; font-size: 14px;">
-            <span>CELKEM</span>
-            <span><span id="r-total">0</span> Kč</span>
-        </div>
-        <div style="text-align: center; margin-top: 10px; font-size: 10px;">DĚKUJEME ZA NÁVŠTĚVU!</div>
     </div>
 
     <script>
         const menu = [
             { n: "Pivo 11", p: 45 }, { n: "Pivo 12", p: 52 },
-            { n: "Kofola 0.5", p: 38 }, { n: "Smažák", p: 185 },
+            { n: "Kofola", p: 38 }, { n: "Smažák", p: 185 },
             { n: "Guláš", p: 175 }, { n: "Espresso", p: 48 }
         ];
-        let items = [];
-        let activeT = 0;
+        let cart = [];
+        let tableNum = 0;
 
-        // Stoly
-        const tDiv = document.getElementById('tables');
+        // Generování stolů
+        const tg = document.getElementById('section-tables');
         for(let i=1; i<=12; i++) {
-            tDiv.innerHTML += `<button onclick="startT(${i})" class="bg-white border-2 h-16 rounded-xl font-bold text-xl active:bg-black active:text-white">${i}</button>`;
+            tg.innerHTML += `<div onclick="openT(${i})" class="bg-white border h-14 flex items-center justify-center rounded-xl font-bold shadow-sm active:bg-blue-600 active:text-white transition-colors">${i}</div>`;
         }
 
-        // Menu
-        const mDiv = document.getElementById('menu');
-        menu.forEach(m => {
-            mDiv.innerHTML += `<button onclick="add('${m.n}', ${m.p})" class="bg-gray-50 border p-4 rounded-xl text-center active:scale-95"><div class="text-[10px] font-bold text-gray-400 uppercase">${m.n}</div><div class="font-black">${m.p} Kč</div></button>`;
+        // Generování menu
+        const mg = document.getElementById('menu-grid');
+        menu.forEach(i => {
+            mg.innerHTML += `<div onclick="add('${i.n}', ${i.p})" class="bg-gray-50 p-4 rounded-xl border text-center active:scale-95"><div class="text-[10px] uppercase font-bold text-gray-400">${i.n}</div><div class="font-black">${i.p} Kč</div></div>`;
         });
 
-        function startT(n) {
-            activeT = n;
-            document.getElementById('table-label').innerText = "STŮL " + n;
-            document.getElementById('tables').classList.add('hidden');
-            document.getElementById('pos').classList.remove('hidden');
+        function openT(n) {
+            tableNum = n;
+            document.getElementById('section-tables').classList.add('hidden');
+            document.getElementById('section-pos').classList.remove('hidden');
         }
 
         function add(n, p) {
-            items.push({n, p});
-            document.getElementById('cart').innerHTML = items.map(i => `<div class="flex justify-between border-b pb-1"><span>${i.n}</span><b>${i.p} Kč</b></div>`).join('');
-            document.getElementById('total').innerText = items.reduce((s, i) => s + i.p, 0);
+            cart.push({n, p});
+            document.getElementById('cart-list').innerHTML = cart.map(i => `<div class="flex justify-between"><span>${i.n}</span><b>${i.p} Kč</b></div>`).join('');
+            document.getElementById('total-price').innerText = cart.reduce((s, i) => s + i.p, 0);
         }
 
-        function doPrint() {
-            if(items.length === 0) return;
+        async function generateAndPrint() {
+            if(cart.length === 0) return;
             
-            // Naplnění tiskové šablony
-            document.getElementById('r-table').innerText = activeT;
+            // 1. Naplnit data
+            document.getElementById('r-table').innerText = tableNum;
             document.getElementById('r-time').innerText = new Date().toLocaleString('cs-CZ');
-            document.getElementById('r-total').innerText = document.getElementById('total').innerText;
-            document.getElementById('r-items').innerHTML = items.map(i => `<div style="display:flex; justify-content:space-between;"><span>${i.n}</span><span>${i.p} Kč</span></div>`).join('');
-            
-            // Spustí tiskový dialog
-            window.print();
+            document.getElementById('r-total').innerText = document.getElementById('total-price').innerText;
+            document.getElementById('r-items').innerHTML = cart.map(i => `<div style="display:flex; justify-content:space-between;"><span>${i.n}</span><span>${i.p} Kč</span></div>`).join('');
+
+            // 2. Vyfotit účtenku (převod na obrázek)
+            const capture = document.getElementById('receipt-capture');
+            const canvas = await html2canvas(capture);
+            const dataUrl = canvas.toDataURL("image/png");
+            const base64Image = dataUrl.split(',')[1];
+
+            // 3. Poslat do RawBT jako obrázek (intent)
+            window.location.href = "intent:#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;S.base64=" + base64Image + ";end;";
         }
     </script>
 </body>
